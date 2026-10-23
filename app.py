@@ -1,6 +1,8 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, flash
 
 app = Flask(__name__)
+# Secret key required for Flask session-based flash messaging
+app.secret_key = "majestic_interior_furniture_pbl_secret_key"
 
 # Route for Home page
 @app.route("/")
@@ -45,6 +47,59 @@ def pages():
 @app.route("/single.html")
 def single():
     return render_template("single.html")
+
+# Route for User Registration page (Task 2)
+@app.route("/register", methods=["GET", "POST"])
+@app.route("/register.html", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        # Server-side validation
+        if not name:
+            flash("Full Name is required.", "error")
+        elif not email:
+            flash("Email Address is required.", "error")
+        elif not phone:
+            flash("Phone Number is required.", "error")
+        elif not password:
+            flash("Password is required.", "error")
+        elif not confirm_password:
+            flash("Confirm Password is required.", "error")
+        elif password != confirm_password:
+            flash("Password and Confirm Password do not match.", "error")
+        else:
+            flash(f"Registration successful for {name}! Please login with your credentials.", "success")
+            return redirect(url_for("login"))
+
+        return render_template("register.html", name=name, email=email, phone=phone)
+
+    return render_template("register.html")
+
+# Route for User Login page (Task 2)
+@app.route("/login", methods=["GET", "POST"])
+@app.route("/login.html", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+
+        # Server-side validation
+        if not email:
+            flash("Email Address is required.", "error")
+        elif not password:
+            flash("Password is required.", "error")
+        else:
+            flash(f"Login successful! Welcome back, {email}.", "success")
+            return render_template("login.html", email=email, login_success=True)
+
+        return render_template("login.html", email=email)
+
+    return render_template("login.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
