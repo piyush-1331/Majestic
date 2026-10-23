@@ -61,6 +61,17 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 		</div>
 	</div>	
 	<!----end-header---->
+	{% with messages = get_flashed_messages(with_categories=true) %}
+	  {% if messages %}
+	    <div class="container" style="margin-top: 20px; margin-bottom: 5px;">
+	      {% for category, message in messages %}
+	        <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+	          {{ message }}
+	        </div>
+	      {% endfor %}
+	    </div>
+	  {% endif %}
+	{% endwith %}
 	<!--banner-starts-->
 	<div class="banner" id="home">
 		<div class="container">
@@ -185,6 +196,39 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 		</div>
 	</div>
 	<!--welcome-ends--> 
+	<!--registered-users-starts--> 
+	{% if users %}
+	<div class="welcome" id="registered-users" style="padding-top: 1.5em; padding-bottom: 3.5em; background: #fdfdfd; border-top: 1px solid #eee; border-bottom: 1px solid #eee;">
+		<div class="container">
+			<div class="welcome-top heading" style="margin-bottom: 2.5em;">
+				<h2>REGISTERED USER DETAILS</h2>
+				<p>Verified client profiles registered in the Majestic portal system.</p>
+			</div>
+			<div class="row">
+				{% for user in users %}
+				<div class="col-md-4 col-sm-6" style="margin-bottom: 25px;">
+					<div style="background: #ffffff; border: 1px solid #e0e0e0; border-top: 4px solid #97262A; padding: 25px 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border-radius: 3px;">
+						<div style="display: flex; align-items: center; margin-bottom: 15px;">
+							<div style="width: 48px; height: 48px; background: #97262A; color: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; margin-right: 14px; flex-shrink: 0;">
+								{{ user.name[0]|upper if user.name else 'U' }}
+							</div>
+							<div style="overflow: hidden;">
+								<h4 style="margin: 0; color: #2a2017; font-weight: 700; font-size: 18px; font-family: 'Lato', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ user.name }}</h4>
+								<span style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Registered Client</span>
+							</div>
+						</div>
+						<div style="border-top: 1px solid #f2f2f2; padding-top: 14px; font-size: 14px; color: #555; line-height: 1.8em;">
+							<p style="margin: 0 0 6px 0;"><strong style="color: #222;">Email:</strong> {{ user.email }}</p>
+							<p style="margin: 0;"><strong style="color: #222;">Phone:</strong> {{ user.phone }}</p>
+						</div>
+					</div>
+				</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+	{% endif %}
+	<!--registered-users-ends--> 
 	<!--offer-starts-->
 	<div class="offer">
 		<div class="container">
