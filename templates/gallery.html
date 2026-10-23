@@ -13,13 +13,13 @@ License URL: http://creativecommons.org/licenses/by/3.0/
 <meta name="keywords" content="Majestic Responsive web template, Bootstrap Web Templates, Flat Web Templates, Andriod Compatible web template, 
 Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyErricsson, Motorola web design" />
 <script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
-<link href="css/bootstrap.css" rel='stylesheet' type='text/css' />
-<link href="css/style.css" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/style.css') }}" rel='stylesheet' type='text/css' />
 <link href='http://fonts.googleapis.com/css?family=Titillium+Web:400,200,200italic,300,300italic,400italic,600,600italic,700,700italic,900' rel='stylesheet' type='text/css'>
-<script src="js/jquery-1.11.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
 <!---- start-smoth-scrolling---->
-<script type="text/javascript" src="js/move-top.js"></script>
-<script type="text/javascript" src="js/easing.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/move-top.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/easing.js') }}"></script>
 <script type="text/javascript">
 			jQuery(document).ready(function($) {
 				$(".scroll").click(function(event){		
@@ -35,17 +35,17 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 	<div class="header" id="home">
 		<div class="container">
 			<div class="logo">
-				<a href="index.html" title="Majestic Home"><img src="images/logo-2.png" alt="Majestic Home"></a>
+				<a href="{{ url_for('home') }}" title="Majestic Home"><img src="{{ url_for('static', filename='images/logo-2.png') }}" alt="Majestic Home"></a>
 			</div>
 			<div class="navigation">
 			 <span class="menu"></span> 
 				<ul class="navig">
-					<li><a href="index.html">Home</a><span> </span></li>
-					<li><a href="about.html">About</a><span> </span></li>
-					<li><a href="blog.html">Blog</a><span> </span></li>
-					<li><a href="pages.html">Pages</a><span> </span></li>
-					<li><a class="active" href="gallery.html">Gallery</a><span> </span></li>
-					<li><a href="contact.html">Contact</a><span> </span></li>
+					<li><a href="{{ url_for('home') }}">Home</a><span> </span></li>
+					<li><a href="{{ url_for('about') }}">About</a><span> </span></li>
+					<li><a href="{{ url_for('blog') }}">Blog</a><span> </span></li>
+					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
+					<li><a class="active" href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
+					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
 				</ul>
 			</div>
 				 <!-- script-for-menu -->
@@ -60,8 +60,8 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 	</div>	
 	<!----end-header---->
 	<!--light-box-files -->
-		<script src="js/jquery.chocolat.js"></script>
-		<link rel="stylesheet" href="css/chocolat.css" type="text/css" media="screen" charset="utf-8" />
+		<script src="{{ url_for('static', filename='js/jquery.chocolat.js') }}"></script>
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/chocolat.css') }}" type="text/css" media="screen" charset="utf-8" />
 		<!--light-box-files -->
 		<script type="text/javascript" charset="utf-8">
 		$(function() {
@@ -77,69 +77,69 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 			<div class="gallery-bottom">
 				<div class="gallery-1">
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-1.jpg">
-							<img class="lazyOwl" src="images/port-1.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-1.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-1.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-2.jpg">
-							<img class="lazyOwl" src="images/port-2.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-2.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-2.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-5.jpg">
-							<img class="lazyOwl" src="images/port-5.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-5.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-5.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-6.jpg">
-							<img class="lazyOwl" src="images/port-6.jpg" alt="name" />
-						</a>
-					</div>
-					<div class="clearfix"></div>
-				</div>
-				<div class="gallery-1">
-					<div class="col-md-3 gallery-left">
-						<a href="images/port-3.jpg">
-							<img class="lazyOwl" src="images/port-3.jpg" alt="name" />
-						</a>
-					</div>
-					<div class="col-md-3 gallery-left">
-						<a href="images/port-4.jpg">
-							<img class="lazyOwl" src="images/port-4.jpg" alt="name" />
-						</a>
-					</div>
-					<div class="col-md-3 gallery-left">
-						<a href="images/port-9.jpg">
-							<img class="lazyOwl" src="images/port-9.jpg" alt="name" />
-						</a>
-					</div>
-					<div class="col-md-3 gallery-left">
-						<a href="images/port-10.jpg">
-							<img class="lazyOwl" src="images/port-10.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-6.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-6.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="clearfix"></div>
 				</div>
 				<div class="gallery-1">
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-11.jpg">
-							<img class="lazyOwl" src="images/port-11.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-3.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-3.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-12.jpg">
-							<img class="lazyOwl" src="images/port-12.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-4.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-4.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-7.jpg">
-							<img class="lazyOwl" src="images/port-7.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-9.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-9.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="col-md-3 gallery-left">
-						<a href="images/port-8.jpg">
-							<img class="lazyOwl" src="images/port-8.jpg" alt="name" />
+						<a href="{{ url_for('static', filename='images/port-10.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-10.jpg') }}" alt="name" />
+						</a>
+					</div>
+					<div class="clearfix"></div>
+				</div>
+				<div class="gallery-1">
+					<div class="col-md-3 gallery-left">
+						<a href="{{ url_for('static', filename='images/port-11.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-11.jpg') }}" alt="name" />
+						</a>
+					</div>
+					<div class="col-md-3 gallery-left">
+						<a href="{{ url_for('static', filename='images/port-12.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-12.jpg') }}" alt="name" />
+						</a>
+					</div>
+					<div class="col-md-3 gallery-left">
+						<a href="{{ url_for('static', filename='images/port-7.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-7.jpg') }}" alt="name" />
+						</a>
+					</div>
+					<div class="col-md-3 gallery-left">
+						<a href="{{ url_for('static', filename='images/port-8.jpg') }}">
+							<img class="lazyOwl" src="{{ url_for('static', filename='images/port-8.jpg') }}" alt="name" />
 						</a>
 					</div>
 					<div class="clearfix"></div>

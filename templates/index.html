@@ -13,13 +13,13 @@ License URL: http://creativecommons.org/licenses/by/3.0/
 <meta name="keywords" content="Majestic Responsive web template, Bootstrap Web Templates, Flat Web Templates, Andriod Compatible web template, 
 Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyErricsson, Motorola web design" />
 <script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
-<link href="css/bootstrap.css" rel='stylesheet' type='text/css' />
-<link href="css/style.css" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/style.css') }}" rel='stylesheet' type='text/css' />
 <link href='http://fonts.googleapis.com/css?family=Titillium+Web:400,200,200italic,300,300italic,400italic,600,600italic,700,700italic,900' rel='stylesheet' type='text/css'>
-<script src="js/jquery-1.11.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
 <!---- start-smoth-scrolling---->
-<script type="text/javascript" src="js/move-top.js"></script>
-<script type="text/javascript" src="js/easing.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/move-top.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/easing.js') }}"></script>
 <script type="text/javascript">
 			jQuery(document).ready(function($) {
 				$(".scroll").click(function(event){		
@@ -35,17 +35,17 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 	<div class="header" id="home">
 		<div class="container">
 			<div class="logo">
-				<a href="index.html" title="Majestic Home"><img src="images/logo-2.png" alt="Majestic Home"></a>
+				<a href="{{ url_for('home') }}" title="Majestic Home"><img src="{{ url_for('static', filename='images/logo-2.png') }}" alt="Majestic Home"></a>
 			</div>
 			<div class="navigation">
 			 <span class="menu"></span> 
 				<ul class="navig">
-					<li><a class="active" href="index.html">Home</a><span> </span></li>
-					<li><a href="about.html">About</a><span> </span></li>
-					<li><a href="blog.html">Blog</a><span> </span></li>
-					<li><a href="pages.html">Pages</a><span> </span></li>
-					<li><a href="gallery.html">Gallery</a><span> </span></li>
-					<li><a href="contact.html">Contact</a><span> </span></li>
+					<li><a class="active" href="{{ url_for('home') }}">Home</a><span> </span></li>
+					<li><a href="{{ url_for('about') }}">About</a><span> </span></li>
+					<li><a href="{{ url_for('blog') }}">Blog</a><span> </span></li>
+					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
+					<li><a href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
+					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
 				</ul>
 			</div>
 				 <!-- script-for-menu -->
@@ -69,14 +69,14 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 							<div class="banner-top">
 							<div class="col-md-6 banner-left">
 							<div class="bnr-one">
-								<img src="images/b-2.jpg" alt="" />
+								<img src="{{ url_for('static', filename='images/b-2.jpg') }}" alt="" />
 								<h3>Donec interdum</h3>
 								<a href="#">Read More</a>
 							</div>
 						</div>
 						<div class="col-md-6 banner-left">
 							<div class="bnr-one">
-								<img src="images/b-1.jpg" alt="" />
+								<img src="{{ url_for('static', filename='images/b-1.jpg') }}" alt="" />
 								<h3>Aliquam bibendum</h3>
 								<a href="#">Read More</a>
 							</div>
@@ -89,14 +89,14 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<div class="banner-top">
 						<div class="col-md-6 banner-left">
 							<div class="bnr-one">
-								<img src="images/b-2.jpg" alt="" />
+								<img src="{{ url_for('static', filename='images/b-2.jpg') }}" alt="" />
 								<h3>Aliquam bibendum</h3>
 								<a href="#">Read More</a>
 							</div>
 						</div>
 						<div class="col-md-6 banner-left">
 							<div class="bnr-one">
-								<img src="images/b-3.jpg" alt="" />
+								<img src="{{ url_for('static', filename='images/b-3.jpg') }}" alt="" />
 								<h3>Quisque pharetra</h3>
 								<a href="#">Read More</a>
 							</div>
@@ -109,14 +109,14 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<div class="banner-top">
 						<div class="col-md-6 banner-left">
 							<div class="bnr-one">
-								<img src="images/b-1.jpg" alt="" />
+								<img src="{{ url_for('static', filename='images/b-1.jpg') }}" alt="" />
 								<h3>Quisque pharetra</h3>
 								<a href="#">Read More</a>
 							</div>
 						</div>
 						<div class="col-md-6 banner-left">
 							<div class="bnr-one">
-								<img src="images/b-2.jpg" alt="" />
+								<img src="{{ url_for('static', filename='images/b-2.jpg') }}" alt="" />
 								<h3>Donec interdum</h3>
 								<a href="#">Read More</a>
 							</div>
@@ -132,8 +132,8 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 	</div>
 	<!--banner-ends--> 
 	<!--FlexSlider-->
-	<link rel="stylesheet" href="css/flexslider.css" type="text/css" media="screen" />
-	<script defer src="js/jquery.flexslider.js"></script>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/flexslider.css') }}" type="text/css" media="screen" />
+	<script defer src="{{ url_for('static', filename='js/jquery.flexslider.js') }}"></script>
 	<script type="text/javascript">
     $(function(){
       SyntaxHighlighter.all();
@@ -162,11 +162,11 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<p>Integer tincidunt ligula id lacinia placerat. Etiam rutrum fermentum tortor. Nunc tempor dui nec tincidunt eleifend. Phasellus lacinia gravida mollis. Curabitur laoreet ligula tempus, elementum dui quis, malesuada velit. Nullam cursus a magna vitae vestibulum.</p>
 					<div class="welcome-one">
 						<div class="col-md-6 welcome-one-left">
-							<a href="single.html" title="Featured project 1"><img src="images/w-6.jpg" alt="Featured project 1" /></a>
+							<a href="{{ url_for('single') }}" title="Featured project 1"><img src="{{ url_for('static', filename='images/w-6.jpg') }}" alt="Featured project 1" /></a>
 						</div>
 						<div class="col-md-6 welcome-one-right">
-							<a href="single.html" title="Featured project 2"><img src="images/w-4.jpg" alt="Featured project 2" /></a>
-							<a href="single.html" class="one-top" title="Featured project 3"><img src="images/w-5.jpg" alt="Featured project 3" /></a>
+							<a href="{{ url_for('single') }}" title="Featured project 2"><img src="{{ url_for('static', filename='images/w-4.jpg') }}" alt="Featured project 2" /></a>
+							<a href="{{ url_for('single') }}" class="one-top" title="Featured project 3"><img src="{{ url_for('static', filename='images/w-5.jpg') }}" alt="Featured project 3" /></a>
 						</div>
 						<div class="clearfix"></div>
 					</div>
@@ -175,7 +175,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<h3>Nullam mattis nibh dolor</h3>
 					<p>Integer tincidunt ligula id lacinia placerat. Etiam rutrum fermentum tortor. Nunc tempor dui nec tincidunt eleifend. Phasellus lacinia gravida mollis. Curabitur laoreet ligula tempus, elementum dui quis, malesuada velit. Nullam cursus a magna vitae vestibulum.</p>
 					<div class="welcome-one">
-						<a href="single.html" title="Featured project 4"><img src="images/w-2.jpg" alt="Featured project 4" /></a>
+						<a href="{{ url_for('single') }}" title="Featured project 4"><img src="{{ url_for('static', filename='images/w-2.jpg') }}" alt="Featured project 4" /></a>
 					</div>
 				</div>
 				<div class="clearfix"></div>
@@ -191,39 +191,39 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 			</div>
 			<div class="offer-bottom">
 				<div class="col-md-3 offer-left">
-					<a href="single.html"><img src="images/o-1.jpg" alt="" />
+					<a href="{{ url_for('single') }}"><img src="{{ url_for('static', filename='images/o-1.jpg') }}" alt="" />
 					<h6>$29</h6></a>
-					<h4><a href="single.html">Quisque sed neque</a></h4>
+					<h4><a href="{{ url_for('single') }}">Quisque sed neque</a></h4>
 					<p>Maecenas interdum augue eget elit interdum, vitae elementum diam molestie. Nulla facilisi.</p>
 					<div class="o-btn">
-						<a href="single.html">Read More</a>
+						<a href="{{ url_for('single') }}">Read More</a>
 					</div>
 				</div>
 				<div class="col-md-3 offer-left">
-					<a href="single.html"><img src="images/o-2.jpg" alt="" />
+					<a href="{{ url_for('single') }}"><img src="{{ url_for('static', filename='images/o-2.jpg') }}" alt="" />
 					<h6>$70</h6></a>
-					<h4><a href="single.html">Donec mattis nunc</a></h4>
+					<h4><a href="{{ url_for('single') }}">Donec mattis nunc</a></h4>
 					<p>Maecenas interdum augue eget elit interdum, vitae elementum diam molestie. Nulla facilisi.</p>
 					<div class="o-btn">
-						<a href="single.html">Read More</a>
+						<a href="{{ url_for('single') }}">Read More</a>
 					</div>
 				</div>
 				<div class="col-md-3 offer-left">
-					<a href="single.html"><img src="images/o-3.jpg" alt="" />
+					<a href="{{ url_for('single') }}"><img src="{{ url_for('static', filename='images/o-3.jpg') }}" alt="" />
 					<h6>$46</h6></a>
-					<h4><a href="single.html">Maecenas non risus</a></h4>
+					<h4><a href="{{ url_for('single') }}">Maecenas non risus</a></h4>
 					<p>Maecenas interdum augue eget elit interdum, vitae elementum diam molestie. Nulla facilisi.</p>
 					<div class="o-btn">
-						<a href="single.html">Read More</a>
+						<a href="{{ url_for('single') }}">Read More</a>
 					</div>
 				</div>
 				<div class="col-md-3 offer-left">
-					<a href="single.html"><img src="images/o-5.jpg" alt="" />
+					<a href="{{ url_for('single') }}"><img src="{{ url_for('static', filename='images/o-5.jpg') }}" alt="" />
 					<h6>$80</h6></a>
-					<h4><a href="single.html">Nullam vitae nisl</a></h4>
+					<h4><a href="{{ url_for('single') }}">Nullam vitae nisl</a></h4>
 					<p>Maecenas interdum augue eget elit interdum, vitae elementum diam molestie. Nulla facilisi.</p>
 					<div class="o-btn">
-						<a href="single.html">Read More</a>
+						<a href="{{ url_for('single') }}">Read More</a>
 					</div>
 				</div>
 				<div class="clearfix"></div>

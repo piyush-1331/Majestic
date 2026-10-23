@@ -13,13 +13,13 @@ License URL: http://creativecommons.org/licenses/by/3.0/
 <meta name="keywords" content="Majestic Responsive web template, Bootstrap Web Templates, Flat Web Templates, Andriod Compatible web template, 
 Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyErricsson, Motorola web design" />
 <script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
-<link href="css/bootstrap.css" rel='stylesheet' type='text/css' />
-<link href="css/style.css" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/style.css') }}" rel='stylesheet' type='text/css' />
 <link href='http://fonts.googleapis.com/css?family=Titillium+Web:400,200,200italic,300,300italic,400italic,600,600italic,700,700italic,900' rel='stylesheet' type='text/css'>
-<script src="js/jquery-1.11.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
 <!---- start-smoth-scrolling---->
-<script type="text/javascript" src="js/move-top.js"></script>
-<script type="text/javascript" src="js/easing.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/move-top.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/easing.js') }}"></script>
 <script type="text/javascript">
 			jQuery(document).ready(function($) {
 				$(".scroll").click(function(event){		
@@ -29,26 +29,26 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 			});
 		</script>
 <!---- start-smoth-scrolling---->
-<link rel="stylesheet" type="text/css" href="css/common.css" />
-<link rel="stylesheet" type="text/css" href="css/style4.css" />
-<script type="text/javascript" src="js/modernizr.custom.79639.js"></script>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/common.css') }}" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style4.css') }}" />
+<script type="text/javascript" src="{{ url_for('static', filename='js/modernizr.custom.79639.js') }}"></script>
 </head>
 <body>
 	<!----start-header---->
 	<div class="header" id="home">
 		<div class="container">
 			<div class="logo">
-				<a href="index.html" title="Majestic Home"><img src="images/logo-2.png" alt="Majestic Home"></a>
+				<a href="{{ url_for('home') }}" title="Majestic Home"><img src="{{ url_for('static', filename='images/logo-2.png') }}" alt="Majestic Home"></a>
 			</div>
 			<div class="navigation">
 			 <span class="menu"></span> 
 				<ul class="navig">
-					<li><a href="index.html">Home</a><span> </span></li>
-					<li><a class="active" href="about.html">About</a><span> </span></li>
-					<li><a href="blog.html">Blog</a><span> </span></li>
-					<li><a href="pages.html">Pages</a><span> </span></li>
-					<li><a href="gallery.html">Gallery</a><span> </span></li>
-					<li><a href="contact.html">Contact</a><span> </span></li>
+					<li><a href="{{ url_for('home') }}">Home</a><span> </span></li>
+					<li><a class="active" href="{{ url_for('about') }}">About</a><span> </span></li>
+					<li><a href="{{ url_for('blog') }}">Blog</a><span> </span></li>
+					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
+					<li><a href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
+					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
 				</ul>
 			</div>
 				 <!-- script-for-menu -->
@@ -71,18 +71,18 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 				<p>Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Etiam et dignissim augue, et sagittis turpis. Vestibulum congue turpis ac tincidunt accumsan. Morbi nunc odio, gravida at, cursus nec, luctus a, lorem. Maecenas tristique orc i ac sem. Duis ultricies pharetra magna. Donec accumsan malesuada orci. </p>
 				<div class="about-bottom">
 					<div class="col-md-4 about-left">
-						<a href="single.html" title="What We Do"><img src="images/abt-1.jpg" alt="What We Do" /></a>
-						<h5><a href="single.html">What We Do</a></h5>
+						<a href="{{ url_for('single') }}" title="What We Do"><img src="{{ url_for('static', filename='images/abt-1.jpg') }}" alt="What We Do" /></a>
+						<h5><a href="{{ url_for('single') }}">What We Do</a></h5>
 						<p>Suspendisse commodo tempor sagittis! In justo est, sollicitudin eu scelerisque pretium, placerat eget elit. Vestibulum congue turpis ac tincidunt accumsan.</p>
 					</div>
 					<div class="col-md-4 about-left">
-						<a href="single.html" title="Our Standards"><img src="images/abt-2.jpg" alt="Our Standards" /></a>
-						<h5><a href="single.html">Our Standards</a></h5>
+						<a href="{{ url_for('single') }}" title="Our Standards"><img src="{{ url_for('static', filename='images/abt-2.jpg') }}" alt="Our Standards" /></a>
+						<h5><a href="{{ url_for('single') }}">Our Standards</a></h5>
 						<p>Suspendisse commodo tempor sagittis! In justo est, sollicitudin eu scelerisque pretium, placerat eget elit. Vestibulum congue turpis ac tincidunt accumsan.</p>
 					</div>
 					<div class="col-md-4 about-left">
-						<a href="single.html" title="Our Capabilities"><img src="images/abt-3.jpg" alt="Our Capabilities" /></a>
-						<h5><a href="single.html">Our Capabilities</a></h5>
+						<a href="{{ url_for('single') }}" title="Our Capabilities"><img src="{{ url_for('static', filename='images/abt-3.jpg') }}" alt="Our Capabilities" /></a>
+						<h5><a href="{{ url_for('single') }}">Our Capabilities</a></h5>
 						<p>Suspendisse commodo tempor sagittis! In justo est, sollicitudin eu scelerisque pretium, placerat eget elit. Vestibulum congue turpis ac tincidunt accumsan.</p>
 					</div>
 					<div class="clearfix"></div>
@@ -102,7 +102,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								<p>1</p>
 							</div>
 							<div class="ad-right">
-								<h4><a href="single.html">Elacus a porta varius dui</a></h4>
+								<h4><a href="{{ url_for('single') }}">Elacus a porta varius dui</a></h4>
 								<p>In neque arcu, vulputate vitae dignissim id, placerat adipiscing lorem. Nulla consectetur adipiscing metus vel pulvinar. Aenean molestie mauris non diam tincidunt faucibus. </p>
 							</div>
 							<div class="clearfix"></div>
@@ -112,7 +112,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								<p>2</p>
 							</div>
 							<div class="ad-right">
-								<h4><a href="single.html">Elacus a porta varius dui</a></h4>
+								<h4><a href="{{ url_for('single') }}">Elacus a porta varius dui</a></h4>
 								<p>In neque arcu, vulputate vitae dignissim id, placerat adipiscing lorem. Nulla consectetur adipiscing metus vel pulvinar. Aenean molestie mauris non diam tincidunt faucibus. </p>
 							</div>
 							<div class="clearfix"></div>
@@ -122,7 +122,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								<p>3</p>
 							</div>
 							<div class="ad-right">
-								<h4><a href="single.html">Elacus a porta varius dui</a></h4>
+								<h4><a href="{{ url_for('single') }}">Elacus a porta varius dui</a></h4>
 								<p>In neque arcu, vulputate vitae dignissim id, placerat adipiscing lorem. Nulla consectetur adipiscing metus vel pulvinar. Aenean molestie mauris non diam tincidunt faucibus. </p>
 							</div>
 							<div class="clearfix"></div>

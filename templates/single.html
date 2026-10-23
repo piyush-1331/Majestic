@@ -13,13 +13,13 @@ License URL: http://creativecommons.org/licenses/by/3.0/
 <meta name="keywords" content="Majestic Responsive web template, Bootstrap Web Templates, Flat Web Templates, Andriod Compatible web template, 
 Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyErricsson, Motorola web design" />
 <script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
-<link href="css/bootstrap.css" rel='stylesheet' type='text/css' />
-<link href="css/style.css" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/style.css') }}" rel='stylesheet' type='text/css' />
 <link href='http://fonts.googleapis.com/css?family=Titillium+Web:400,200,200italic,300,300italic,400italic,600,600italic,700,700italic,900' rel='stylesheet' type='text/css'>
-<script src="js/jquery-1.11.0.min.js"></script>
+<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
 <!---- start-smoth-scrolling---->
-<script type="text/javascript" src="js/move-top.js"></script>
-<script type="text/javascript" src="js/easing.js"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/move-top.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/easing.js') }}"></script>
 <script type="text/javascript">
 			jQuery(document).ready(function($) {
 				$(".scroll").click(function(event){		
@@ -35,17 +35,17 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 	<div class="header" id="home">
 		<div class="container">
 			<div class="logo">
-				<a href="index.html" title="Majestic Home"><img src="images/logo-2.png" alt="Majestic Home"></a>
+				<a href="{{ url_for('home') }}" title="Majestic Home"><img src="{{ url_for('static', filename='images/logo-2.png') }}" alt="Majestic Home"></a>
 			</div>
 			<div class="navigation">
 			 <span class="menu"></span> 
 				<ul class="navig">
-					<li><a class="active" href="index.html">Home</a><span> </span></li>
-					<li><a href="about.html">About</a><span> </span></li>
-					<li><a href="blog.html">Blog</a><span> </span></li>
-					<li><a href="pages.html">Pages</a><span> </span></li>
-					<li><a href="gallery.html">Gallery</a><span> </span></li>
-					<li><a href="contact.html">Contact</a><span> </span></li>
+					<li><a class="active" href="{{ url_for('home') }}">Home</a><span> </span></li>
+					<li><a href="{{ url_for('about') }}">About</a><span> </span></li>
+					<li><a href="{{ url_for('blog') }}">Blog</a><span> </span></li>
+					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
+					<li><a href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
+					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
 				</ul>
 			</div>
 				 <!-- script-for-menu -->
@@ -68,12 +68,12 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 			<div class="blog-top">
 				<div class="col-md-9 blog-left">
 					<div class="blog-main">
-						<a href="single.html" class="bg">DUIS AUTE IRURE DOLOR IN REPREHENDERIT IN VOLUPTATE VELIT ESSE</a>
+						<a href="{{ url_for('single') }}" class="bg">DUIS AUTE IRURE DOLOR IN REPREHENDERIT IN VOLUPTATE VELIT ESSE</a>
 						<p>Post by <a href="#">Admin</a> on saturday, March 02, 2015  <a href="#">5 comments</a></p>
 					</div>
 					<div class="blog-main-one">
 						<div class="blog-one">
-							<img src="images/bg-1.jpg" alt="" />
+							<img src="{{ url_for('static', filename='images/bg-1.jpg') }}" alt="" />
 							<p>Aenean vitae risus tempor, suscipit turpis elementum, lacinia justo. Aenean tortor orci, tristique sed libero vel, vulputate elementum lectus. Aliquam dapibus nisi et gravida accumsan. Nam aliquam blandit dapibus. Aliquam bibendum vestibulum neque, eu dapibus nunc congue vitae. Praesent mollis dolor eget elementum auctor.Nunc quis turpis sed tortor viverra dictum. Etiam in cursus libero, ut cursus turpis. Nulla quis nulla pellentesque, commodo lorem sed, ultrices leo. Duis magna mauris, cursus vitae lacus ut, consequat malesuada magna. Duis bibendum pellentesque nisi eget volutpat. Nunc rhoncus ultrices lectus.Aliquam eu dui quis orci ultrices eleifend ut non massa. Duis commodo, ante in vulputate iaculis, libero ex fringilla dolor, id laoreet augue lorem in velit.</p>
 						</div>	
 						<div class="blog-comments">
@@ -93,7 +93,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 							<div class="media">
 								<div class="media-left">
 									<a href="#" title="Commenter avatar">
-									<img class="media-object" src="images/co.png" alt="Commenter avatar" />
+									<img class="media-object" src="{{ url_for('static', filename='images/co.png') }}" alt="Commenter avatar" />
 									</a>
 								</div>
 								<div class="media-body">
@@ -102,7 +102,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 									<div class="media">
 										<div class="media-left">
 											<a href="#" title="Commenter avatar">
-											<img class="media-object" src="images/co.png" alt="Commenter avatar" />
+											<img class="media-object" src="{{ url_for('static', filename='images/co.png') }}" alt="Commenter avatar" />
 											</a>
 										</div>
 										<div class="media-body">
@@ -114,7 +114,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								<div class="media">
 									<div class="media-left">
 										<a href="#" title="Melinda Dee avatar">
-										<img class="media-object" src="images/co.png" alt="Melinda Dee avatar">
+										<img class="media-object" src="{{ url_for('static', filename='images/co.png') }}" alt="Melinda Dee avatar">
 										</a>
 									</div>
 									<div class="media-body">
@@ -130,19 +130,19 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 							<h3>RELATED POSTS</h3>
 							<div class="related-bottom">
 								<div class="col-md-3 related-left">
-									<img src="images/r-1.jpg" alt="" />
+									<img src="{{ url_for('static', filename='images/r-1.jpg') }}" alt="" />
 									<h4>Cum sociis sere</h4>
 								</div>
 								<div class="col-md-3 related-left">
-									<img src="images/r-2.jpg" alt="" />
+									<img src="{{ url_for('static', filename='images/r-2.jpg') }}" alt="" />
 									<h4>Vestibulum est ex</h4>
 								</div>
 								<div class="col-md-3 related-left">
-									<img src="images/r-3.jpg" alt="" />
+									<img src="{{ url_for('static', filename='images/r-3.jpg') }}" alt="" />
 									<h4>Ut tincidunt</h4>
 								</div>
 								<div class="col-md-3 related-left">
-									<img src="images/r-4.jpg" alt="" />
+									<img src="{{ url_for('static', filename='images/r-4.jpg') }}" alt="" />
 									<h4> Aliquam eu quam</h4>
 								</div>
 								<div class="clearfix"></div>
