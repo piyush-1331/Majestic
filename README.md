@@ -41,9 +41,10 @@ The primary development effort spans several architectural layers:
    - Implemented JSON storage helper functions (`load_users()`, `save_users()`) to persist registered client records in `data/users.json`.
 5. **Form Validation**:
    - Added robust server-side validation preventing blank fields, password mismatches, duplicate email entries, and non-numeric or negative transaction amounts.
-6. **SMTP Email Notification System (`smtplib`, `email.mime`)**:
-   - Integrated automated email dispatch using Python's built-in `smtplib` and `email.mime` libraries with TLS support.
+6. **Resend Email Notification System (`resend`, REST API over HTTPS)**:
+   - Integrated automated email dispatch exclusively via the official Resend API (`resend`), operating over secure HTTPS (port 443).
    - Designed dual-format (HTML and plain-text fallback) emails branded with Majestic theme styling (`#97262A`).
+   - Automated event notifications for: Registration, Login Success, Invalid Password Security Alert, Payment Success, and Payment Failure.
    - Implemented secure credential management via environment variables (`.env`) loaded by `python-dotenv`.
 7. **Razorpay Payment Gateway Integration (`razorpay`, Test Mode)**:
    - Integrated Razorpay Python SDK using environment variables (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`).
@@ -77,19 +78,18 @@ The transition from a static website to an integrated Flask application was perf
 4. **Home Page Rendering**: Updated `home()` to read `data/users.json` and pass `users` to `index.html`. Added a responsive "REGISTERED USER DETAILS" card section.
 
 ### Phase 4: Task 4 — Email Notification System (Resend API over HTTPS for Render)
-1. **Migration from Gmail SMTP to Resend API**:
-   - On cloud hosting platforms such as Render, standard outbound SMTP ports (25, 465, and 587) are network-restricted, yielding `[Errno 101] Network is unreachable` in server logs.
-   - Migrated email dispatch to the official **Resend Python SDK (`resend`)** which operates entirely over secure **HTTPS (port 443)**, ensuring 100% cloud reliability.
+1. **Exclusive Resend API Integration**:
+   - Outbound SMTP ports (25, 465, and 587) are completely bypassed. All emails are dispatched exclusively through the official **Resend Python SDK (`resend`)** via secure **HTTPS (port 443)**.
 2. **Environment Configuration**:
-   - Added `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (defaulting to `onboarding@resend.dev` or a verified custom domain) in `.env` and `.env.example`.
+   - Configured `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (`onboarding@resend.dev` or custom domain) in `.env` and `.env.example`.
    - Maintained `SECRET_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` without modification.
 3. **Email Dispatch Engine**:
    - `send_registration_success_email()`: Dispatches an official welcome email upon account registration.
    - `send_login_success_email()`: Dispatches a branded HTML/plain-text confirmation email with user name, registered account, timestamp, and authentication status.
-   - `send_login_failed_email()`: Dispatches an immediate security alert to the entered address warning of an unsuccessful login attempt (e.g., invalid password).
+   - `send_login_failed_email()`: Dispatches an immediate security alert to the entered address warning of an unsuccessful login attempt (specifically "Invalid Password").
    - `send_payment_success_email()`: Dispatches an official payment receipt with payment ID, order ID, amount, and timestamp once Razorpay HMAC-SHA256 signature is verified.
    - `send_payment_failed_email()`: Dispatches an instant payment incomplete or failure alert with order ID, amount, failure reason, and automated refund assurance.
-   - **Resilient Hybrid Dispatcher** (`send_email_notification`): Intelligently coordinates between direct Gmail SMTP (for delivering directly to arbitrary inboxes without domain restrictions) and the Resend HTTPS API (with cloud forwarding for environments like Render where outbound SMTP ports are blocked).
+   - **Resend Dispatcher** (`send_email_notification`): Calls `send_email_via_resend()`. In Resend free sandbox mode, if an external address is supplied, it automatically delivers to the authorized developer account with an indicator notice.
 4. **Session & Navbar Enhancements**:
    - Successful login sets `session["user"]` and redirects to Home.
    - When logged in, "Login" and "Register" buttons disappear and are replaced by the user greeting and a **Logout** button.
@@ -199,7 +199,7 @@ majestic-web/
 │
 ├── app.py                     # Main Flask application and route definitions
 ├── requirements.txt           # Python dependencies (Flask, python-dotenv, razorpay)
-├── .env.example               # Template for environment variables (SMTP, Razorpay)
+├── .env.example               # Template for environment variables (Resend, Razorpay)
 ├── .gitignore                 # Excludes .env, virtual environments, and caches
 │
 ├── data/
@@ -353,7 +353,7 @@ http://127.0.0.1:5000/
 1. **API Key & Secret Isolation**:
    - `RAZORPAY_KEY_ID` is safely exposed to frontend checkout.
    - `RAZORPAY_KEY_SECRET` is kept **strictly server-side** on Flask and never passed to HTML or JS templates.
-2. **Environment Variable Storage**: All secrets (`SECRET_KEY`, SMTP passwords, Razorpay secrets) are isolated in `.env` and excluded via `.gitignore`.
+2. **Environment Variable Storage**: All secrets (`SECRET_KEY`, `RESEND_API_KEY`, Razorpay secrets) are isolated in `.env` and excluded via `.gitignore`.
 3. **Cryptographic Signature Verification**:
    - Payment success is **never** trusted from frontend callbacks alone.
    - The backend computes and verifies `HMAC-SHA256(order_id + "|" + payment_id, key_secret)` using `client.utility.verify_payment_signature` before granting success status.
@@ -367,13 +367,9 @@ http://127.0.0.1:5000/
 ## 🧪 Testing
 
 ### Automated Test Suite Execution
-Run the unit test suites:
+Run the unit test suite:
 ```powershell
-# Run Task 5 Razorpay test suite (11 tests)
-python scratch/test_task5.py
-
-# Run Task 4 Email notification test suite (4 tests)
-python scratch/test_task4.py
+python -m unittest test_app.py
 ```
 
 ### Manual Testing Guide for Task 5

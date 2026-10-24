@@ -1,10 +1,6 @@
 import os
 import json
-import smtplib
 from datetime import datetime
-import email.utils
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import razorpay
 import resend
 from dotenv import load_dotenv
@@ -45,7 +41,7 @@ def save_users(users):
 def sanitize_safe_error(err_str):
     """Mask any sensitive credentials from error outputs before logging."""
     safe_err = str(err_str) if err_str else "Unknown error"
-    for secret_var in ["RESEND_API_KEY", "RAZORPAY_KEY_SECRET", "SMTP_PASSWORD", "SECRET_KEY"]:
+    for secret_var in ["RESEND_API_KEY", "RAZORPAY_KEY_SECRET", "SECRET_KEY"]:
         val = os.getenv(secret_var, "")
         if val and len(val) >= 4 and val in safe_err:
             safe_err = safe_err.replace(val, "********")
@@ -76,7 +72,7 @@ def get_resend_config():
         "is_configured": is_configured
     }
 
-def send_email_via_resend(recipient_email, subject, text_body, html_body=None, allow_forward=True):
+def send_email_via_resend(recipient_email, subject, text_body, html_body=None):
     """
     Sends an email notification via the official Resend Python SDK over HTTPS (port 443).
     Ensures safe error logging without credential leakage.
@@ -94,19 +90,22 @@ def send_email_via_resend(recipient_email, subject, text_body, html_body=None, a
         print(f"Email sending failed: {error_msg}", flush=True)
         return False, error_msg
 
+    target_email = recipient_email.strip()
+
     try:
         resend.api_key = config["api_key"]
         params = {
             "from": config["sender"],
-            "to": [recipient_email],
+            "to": [target_email],
             "subject": subject,
             "text": text_body,
         }
         if html_body:
             params["html"] = html_body
 
-        resend.Emails.send(params)
-        print("Email sent successfully", flush=True)
+        resp = resend.Emails.send(params)
+        email_id = resp.get("id", "N/A") if isinstance(resp, dict) else getattr(resp, "id", "N/A")
+        print(f"Email sent successfully via Resend (ID: {email_id}) to {target_email}", flush=True)
         return True, "Email sent successfully"
 
     except Exception as e:
@@ -114,160 +113,49 @@ def send_email_via_resend(recipient_email, subject, text_body, html_body=None, a
         # Handle Resend trial mode restriction automatically:
         # If Resend free tier only allows sending to the account owner email (e.g. piyushpatel131206@gmail.com),
         # extract the authorized email and re-try sending to that authorized email so the notification is ALWAYS delivered!
-        if "only send testing emails to your own email address" in safe_err:
-            if allow_forward:
-                import re
-                match = re.search(r"\(([^)]+@[^)]+)\)", safe_err)
-                authorized_email = match.group(1).strip() if match else os.getenv("RESEND_TEST_RECIPIENT", "piyushpatel131206@gmail.com")
-                if authorized_email and authorized_email.lower() != recipient_email.lower():
-                    print(f"Resend test mode: Forwarding notification from '{recipient_email}' to authorized account email '{authorized_email}'", flush=True)
-                    try:
-                        params["to"] = [authorized_email]
-                        params["subject"] = f"{subject} [For: {recipient_email}]"
-                        resend.Emails.send(params)
-                        print("Email sent successfully", flush=True)
-                        return True, "Email sent successfully"
-                    except Exception as retry_e:
-                        retry_err = sanitize_safe_error(retry_e)
-                        print(f"Email sending failed: {retry_err}", flush=True)
-                        return False, retry_err
-            return False, safe_err
+        sandbox_restriction_phrases = (
+            "only send testing emails to your own email address",
+            "testing email address",
+            "resend.com/domains",
+            "invalid `to` field",
+        )
+        if any(phrase in safe_err.lower() for phrase in sandbox_restriction_phrases):
+            import re
+            match = re.search(r"\(([^)]+@[^)]+)\)", safe_err)
+            authorized_email = match.group(1).strip() if match else os.getenv("RESEND_TEST_RECIPIENT", "piyushpatel131206@gmail.com")
+            if authorized_email and target_email.lower() != authorized_email.lower():
+                print(f"Resend test mode: Forwarding notification from '{target_email}' to authorized account email '{authorized_email}'", flush=True)
+                try:
+                    notice_text = f"[Resend Sandbox Mode Notice: Notification forwarded to authorized test account {authorized_email} (Intended recipient: {target_email})]\n\n"
+                    forward_params = {
+                        "from": config["sender"],
+                        "to": [authorized_email],
+                        "subject": f"{subject} [For: {target_email}]",
+                        "text": notice_text + text_body,
+                    }
+                    if html_body:
+                        forward_params["html"] = (
+                            f'<div style="background:#fff3cd; border:1px solid #ffeeba; color:#856404; padding:10px 14px; margin-bottom:16px; border-radius:4px; font-family:sans-serif; font-size:13px;">'
+                            f'<strong>Resend Sandbox Mode:</strong> Delivered to authorized test account <strong>{authorized_email}</strong> (Intended recipient: <strong>{target_email}</strong>).'
+                            f'</div>' + html_body
+                        )
+                    resp = resend.Emails.send(forward_params)
+                    email_id = resp.get("id", "N/A") if isinstance(resp, dict) else getattr(resp, "id", "N/A")
+                    print(f"Email sent successfully via Resend forward (ID: {email_id}) to {authorized_email}", flush=True)
+                    return True, "Email sent successfully"
+                except Exception as retry_e:
+                    retry_err = sanitize_safe_error(retry_e)
+                    print(f"Email sending failed: {retry_err}", flush=True)
+                    return False, retry_err
 
-        print(f"Email sending failed: {safe_err}", flush=True)
-        return False, safe_err
-
-def get_smtp_config():
-    """
-    Retrieve SMTP configuration dynamically from environment variables (.env / Render).
-    """
-    load_dotenv(override=True)
-
-    server = (os.getenv("SMTP_SERVER") or os.getenv("MAIL_SERVER") or "smtp.gmail.com").strip().strip('"').strip("'")
-
-    raw_port = os.getenv("SMTP_PORT") or os.getenv("MAIL_PORT") or "587"
-    try:
-        port = int(str(raw_port).strip().strip('"').strip("'"))
-    except (ValueError, TypeError):
-        port = 587
-
-    raw_tls = os.getenv("SMTP_USE_TLS") or os.getenv("MAIL_USE_TLS")
-    if raw_tls is None or raw_tls == "":
-        use_tls = True  # Default enabled for Gmail port 587
-    else:
-        use_tls = str(raw_tls).strip().strip('"').strip("'").lower() in ("true", "1", "yes", "enabled", "t")
-
-    username = (os.getenv("SMTP_USERNAME") or os.getenv("MAIL_USERNAME") or "").strip().strip('"').strip("'")
-    raw_password = os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_PASSWORD") or ""
-    # Strip enclosing quotes and internal spaces (in case Google 16-char App Password was pasted with spaces)
-    password = str(raw_password).strip().strip('"').strip("'").replace(" ", "")
-
-    raw_sender = (os.getenv("SMTP_SENDER") or os.getenv("MAIL_SENDER") or "").strip().strip('"').strip("'")
-    if raw_sender:
-        sender = raw_sender
-    elif username:
-        sender = f"Majestic Interior & Furniture <{username}>"
-    else:
-        sender = "Majestic Interior & Furniture <noreply@majesticinterior.com>"
-
-    is_configured = bool(username and password)
-    return {
-        "server": server,
-        "port": port,
-        "use_tls": use_tls,
-        "username": username,
-        "password": password,
-        "sender": sender,
-        "is_configured": is_configured
-    }
-
-def send_email_via_smtp(recipient_email, subject, text_body, html_body=None):
-    """
-    Direct Gmail SMTP email sender. Delivers straight to recipient's Primary Inbox.
-    Returns (success: bool, info: str).
-    """
-    config = get_smtp_config()
-
-    if not config["is_configured"]:
-        error_msg = "SMTP configuration loaded: False (Missing SMTP_USERNAME or SMTP_PASSWORD in environment)"
-        print(f"Email sending failed: {error_msg}", flush=True)
-        return False, error_msg
-
-    if not recipient_email or "@" not in str(recipient_email):
-        error_msg = f"Invalid recipient email address: '{recipient_email}'"
-        print(f"Email sending failed: {error_msg}", flush=True)
-        return False, error_msg
-
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = config["sender"]
-        msg["To"] = recipient_email
-        msg["Date"] = email.utils.formatdate(localtime=True)
-        msg["Message-ID"] = email.utils.make_msgid(domain=config["server"])
-
-        # Attach plain-text fallback first
-        msg.attach(MIMEText(text_body, "plain", "utf-8"))
-
-        # Attach HTML version if provided
-        if html_body:
-            msg.attach(MIMEText(html_body, "html", "utf-8"))
-
-        # Connect via SSL if port 465, otherwise standard SMTP with STARTTLS (6s timeout for fast cloud failover)
-        if config["port"] == 465:
-            with smtplib.SMTP_SSL(config["server"], config["port"], timeout=6) as server:
-                server.ehlo()
-                server.login(config["username"], config["password"])
-                server.send_message(msg)
-        else:
-            with smtplib.SMTP(config["server"], config["port"], timeout=6) as server:
-                server.ehlo()
-                if config["use_tls"]:
-                    server.starttls()
-                    server.ehlo()
-                server.login(config["username"], config["password"])
-                server.send_message(msg)
-
-        print(f"Email sent successfully via Gmail SMTP to '{recipient_email}'", flush=True)
-        return True, "Email sent successfully"
-
-    except smtplib.SMTPAuthenticationError as e:
-        safe_err = f"SMTP Authentication failed (Check SMTP_USERNAME and Google App Password). Server response: {e.smtp_error if hasattr(e, 'smtp_error') else e}"
-        print(f"Email sending failed: {safe_err}", flush=True)
-        return False, safe_err
-    except smtplib.SMTPConnectError as e:
-        safe_err = f"SMTP Connection failed to {config['server']}:{config['port']}. {e}"
-        print(f"Email sending failed: {safe_err}", flush=True)
-        return False, safe_err
-    except Exception as e:
-        safe_err = sanitize_safe_error(e)
         print(f"Email sending failed: {safe_err}", flush=True)
         return False, safe_err
 
 def send_email_notification(recipient_email, subject, text_body, html_body=None):
     """
-    Universal resilient email dispatcher.
-    Strategy:
-    1. Priority 1: Gmail SMTP (Sends directly to recipient's Primary Inbox for any email address).
-    2. Priority 2: Resend API over HTTPS (Automatic failover for cloud environments like Render where outbound SMTP ports are blocked).
+    Universal email dispatcher using ONLY the official Resend Email API over HTTPS (port 443).
     """
-    smtp_cfg = get_smtp_config()
-    resend_cfg = get_resend_config()
-
-    # Step 1: Try Gmail SMTP first for direct inbox delivery
-    if smtp_cfg["is_configured"]:
-        success, msg = send_email_via_smtp(recipient_email, subject, text_body, html_body)
-        if success:
-            return True, f"SMTP: {msg}"
-        print(f"SMTP failed ({msg}), attempting fallback to Resend API over HTTPS...", flush=True)
-
-    # Step 2: Fall back to Resend API over HTTPS (port 443)
-    if resend_cfg["is_configured"]:
-        success, msg = send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=True)
-        if success:
-            return True, f"Resend: {msg}"
-        return False, msg
-
-    return False, "No working email provider configured in environment."
+    return send_email_via_resend(recipient_email, subject, text_body, html_body)
 
 def send_login_success_email(user_email, user_name):
     """Sends a 'Login Successful' notification to the registered user."""
