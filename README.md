@@ -84,9 +84,12 @@ The transition from a static website to an integrated Flask application was perf
    - Added `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (defaulting to `onboarding@resend.dev` or a verified custom domain) in `.env` and `.env.example`.
    - Maintained `SECRET_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` without modification.
 3. **Email Dispatch Engine**:
+   - `send_registration_success_email()`: Dispatches an official welcome email upon account registration.
    - `send_login_success_email()`: Dispatches a branded HTML/plain-text confirmation email with user name, registered account, timestamp, and authentication status.
-   - `send_login_failed_email()`: Dispatches an immediate security alert to the entered address warning of an unsuccessful login attempt.
-   - Safe error handling: logs `Email sending failed: <safe error>` without exposing API keys, secrets, or passwords, and without interrupting the user login/session experience.
+   - `send_login_failed_email()`: Dispatches an immediate security alert to the entered address warning of an unsuccessful login attempt (e.g., invalid password).
+   - `send_payment_success_email()`: Dispatches an official payment receipt with payment ID, order ID, amount, and timestamp once Razorpay HMAC-SHA256 signature is verified.
+   - `send_payment_failed_email()`: Dispatches an instant payment incomplete or failure alert with order ID, amount, failure reason, and automated refund assurance.
+   - **Resilient Hybrid Dispatcher** (`send_email_notification`): Intelligently coordinates between direct Gmail SMTP (for delivering directly to arbitrary inboxes without domain restrictions) and the Resend HTTPS API (with cloud forwarding for environments like Render where outbound SMTP ports are blocked).
 4. **Session & Navbar Enhancements**:
    - Successful login sets `session["user"]` and redirects to Home.
    - When logged in, "Login" and "Register" buttons disappear and are replaced by the user greeting and a **Logout** button.

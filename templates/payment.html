@@ -265,7 +265,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								},
 								"modal": {
 									"ondismiss": function(){
-										window.location.href = "{{ url_for('payment_failure') }}?reason=Payment+cancelled+by+user&order_id={{ order_id }}&amount={{ amount }}";
+										window.location.href = "{{ url_for('payment_failure') }}?reason=Payment+cancelled+by+user&order_id={{ order_id }}&amount={{ amount }}&email=" + encodeURIComponent("{{ customer_email }}") + "&name=" + encodeURIComponent("{{ customer_name }}");
 									}
 								}
 							};
@@ -274,7 +274,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 
 							rzp1.on('payment.failed', function (response){
 								var errorReason = response.error ? response.error.description : 'Payment Failed';
-								window.location.href = "{{ url_for('payment_failure') }}?reason=" + encodeURIComponent(errorReason) + "&order_id={{ order_id }}&amount={{ amount }}";
+								window.location.href = "{{ url_for('payment_failure') }}?reason=" + encodeURIComponent(errorReason) + "&order_id={{ order_id }}&amount={{ amount }}&email=" + encodeURIComponent("{{ customer_email }}") + "&name=" + encodeURIComponent("{{ customer_name }}");
 							});
 
 							document.getElementById('rzp-button1').onclick = function(e){

@@ -76,7 +76,7 @@ def get_resend_config():
         "is_configured": is_configured
     }
 
-def send_email_via_resend(recipient_email, subject, text_body, html_body=None):
+def send_email_via_resend(recipient_email, subject, text_body, html_body=None, allow_forward=True):
     """
     Sends an email notification via the official Resend Python SDK over HTTPS (port 443).
     Ensures safe error logging without credential leakage.
@@ -115,21 +115,23 @@ def send_email_via_resend(recipient_email, subject, text_body, html_body=None):
         # If Resend free tier only allows sending to the account owner email (e.g. piyushpatel131206@gmail.com),
         # extract the authorized email and re-try sending to that authorized email so the notification is ALWAYS delivered!
         if "only send testing emails to your own email address" in safe_err:
-            import re
-            match = re.search(r"\(([^)]+@[^)]+)\)", safe_err)
-            authorized_email = match.group(1).strip() if match else os.getenv("RESEND_TEST_RECIPIENT", "piyushpatel131206@gmail.com")
-            if authorized_email and authorized_email.lower() != recipient_email.lower():
-                print(f"Resend test mode: Forwarding notification from '{recipient_email}' to authorized account email '{authorized_email}'", flush=True)
-                try:
-                    params["to"] = [authorized_email]
-                    params["subject"] = f"{subject} [For: {recipient_email}]"
-                    resend.Emails.send(params)
-                    print("Email sent successfully", flush=True)
-                    return True, "Email sent successfully"
-                except Exception as retry_e:
-                    retry_err = sanitize_safe_error(retry_e)
-                    print(f"Email sending failed: {retry_err}", flush=True)
-                    return False, retry_err
+            if allow_forward:
+                import re
+                match = re.search(r"\(([^)]+@[^)]+)\)", safe_err)
+                authorized_email = match.group(1).strip() if match else os.getenv("RESEND_TEST_RECIPIENT", "piyushpatel131206@gmail.com")
+                if authorized_email and authorized_email.lower() != recipient_email.lower():
+                    print(f"Resend test mode: Forwarding notification from '{recipient_email}' to authorized account email '{authorized_email}'", flush=True)
+                    try:
+                        params["to"] = [authorized_email]
+                        params["subject"] = f"{subject} [For: {recipient_email}]"
+                        resend.Emails.send(params)
+                        print("Email sent successfully", flush=True)
+                        return True, "Email sent successfully"
+                    except Exception as retry_e:
+                        retry_err = sanitize_safe_error(retry_e)
+                        print(f"Email sending failed: {retry_err}", flush=True)
+                        return False, retry_err
+            return False, safe_err
 
         print(f"Email sending failed: {safe_err}", flush=True)
         return False, safe_err
@@ -243,17 +245,65 @@ def send_email_via_smtp(recipient_email, subject, text_body, html_body=None):
 
 def send_email_notification(recipient_email, subject, text_body, html_body=None):
     """
-    Universal email dispatcher.
-    Prefers Resend API (HTTPS) if RESEND_API_KEY is configured.
-    Otherwise falls back to SMTP for backward compatibility.
+    Universal resilient email dispatcher.
+    Strategy:
+    1. Check Resend configuration and SMTP configuration.
+    2. If Resend is configured:
+       - If recipient is the authorized Resend account email (e.g. piyushpatel131206@gmail.com)
+         or custom domain is used (not ending with @resend.dev):
+         Try Resend first (fast HTTPS over port 443).
+         If successful -> return True.
+         If failed -> fall back to SMTP if configured.
+       - If recipient is an external/different address on Resend free trial domain (@resend.dev):
+         Resend free tier rejects outside recipients.
+         If SMTP is configured (e.g. Gmail SMTP):
+           Try SMTP first! This delivers directly to the user's real mailbox.
+           If SMTP succeeds -> return True.
+           If SMTP fails (e.g. timeout on Render cloud where outbound SMTP ports are blocked):
+             Fall back to Resend forwarding to authorized account email so no notification is lost!
+         Else:
+           Send via Resend forwarding to authorized account email.
+    3. If only SMTP is configured:
+       Send via SMTP.
+    4. If neither is configured:
+       Return False, "No email delivery provider is configured."
     """
     resend_cfg = get_resend_config()
+    smtp_cfg = get_smtp_config()
+
+    authorized_resend_email = os.getenv("RESEND_TEST_RECIPIENT", "piyushpatel131206@gmail.com").strip().lower()
+    is_resend_trial = "resend.dev" in resend_cfg["from_email"].lower()
+    is_recipient_resend_authorized = recipient_email.strip().lower() == authorized_resend_email
+
+    # Case A: Recipient is Resend owner OR custom domain is verified -> Try Resend first
+    if resend_cfg["is_configured"] and (not is_resend_trial or is_recipient_resend_authorized):
+        success, msg = send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=False)
+        if success:
+            return True, msg
+        # If Resend failed, try SMTP fallback
+        if smtp_cfg["is_configured"]:
+            print(f"Resend failed ({msg}), attempting fallback to SMTP...", flush=True)
+            return send_email_via_smtp(recipient_email, subject, text_body, html_body)
+        return False, msg
+
+    # Case B: External recipient on Resend trial sandbox -> Try SMTP first for direct inbox delivery
+    if smtp_cfg["is_configured"]:
+        success, msg = send_email_via_smtp(recipient_email, subject, text_body, html_body)
+        if success:
+            return True, msg
+        print(f"SMTP delivery failed ({msg}), attempting fallback to Resend cloud forward...", flush=True)
+        if resend_cfg["is_configured"]:
+            return send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=True)
+        return False, msg
+
+    # Case C: Only Resend is configured (with trial sandbox forward)
     if resend_cfg["is_configured"]:
-        return send_email_via_resend(recipient_email, subject, text_body, html_body)
-    return send_email_via_smtp(recipient_email, subject, text_body, html_body)
+        return send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=True)
+
+    return False, "No email delivery provider is configured."
 
 def send_login_success_email(user_email, user_name):
-    """Sends a 'Login Successful' notification to the registered user via Resend."""
+    """Sends a 'Login Successful' notification to the registered user."""
     print("Attempting to send login notification", flush=True)
     timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
     subject = "Majestic Interior — Login Successful"
@@ -311,25 +361,47 @@ Majestic Interior & Furniture Team
 </body>
 </html>
 """
-    return send_email_via_resend(user_email, subject, text_body, html_body)
+    return send_email_notification(user_email, subject, text_body, html_body)
 
-def send_login_failed_email(entered_email):
-    """Sends a 'Login Failed' security alert to the entered email address via Resend."""
-    print("Attempting to send login notification", flush=True)
+def send_login_failed_email(entered_email, user_name=None, reason="Invalid Password"):
+    """Sends a 'Login Failed' / 'Invalid Password' security alert to the entered email address."""
+    print("Attempting to send login failure notification", flush=True)
     timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
-    subject = "Security Alert: Unsuccessful Login Attempt — Majestic Interior"
+    greeting_name = user_name if user_name else "Valued Member"
+
+    if reason == "Invalid Password":
+        subject = "Security Alert: Invalid Password Attempt — Majestic Interior"
+        status_text = "Failed (Incorrect Password Entered)"
+        explanation = (
+            f"An unsuccessful login attempt with an incorrect password was detected for your account ({entered_email}). "
+            "If you entered the wrong password, please check your credentials and try again. "
+            "If you did not initiate this login attempt, someone entered an incorrect password for your registered account. "
+            "Please consider securing your account credentials immediately."
+        )
+    else:
+        subject = "Security Alert: Unsuccessful Login Attempt — Majestic Interior"
+        status_text = f"Failed ({reason})"
+        explanation = (
+            f"An unsuccessful login attempt was detected on Majestic Interior & Furniture using this email address: {entered_email}. "
+            "If you attempted to sign in and do not have an account, please register. "
+            "If you did not initiate this attempt, someone may have entered your email address on our login page."
+        )
 
     text_body = f"""Security Alert: Unsuccessful Login Attempt
 
-An unsuccessful login attempt was detected on Majestic Interior & Furniture using this email address: {entered_email}.
+Hello {greeting_name},
+
+{explanation}
 
 Attempt Details:
 - Attempted Account: {entered_email}
+- Event: Login Attempt with {reason}
 - Date & Time: {timestamp}
-- Status: Failed (Invalid Credentials)
+- Status: {status_text}
 
-If you attempted to sign in and forgot your password, please verify your credentials or register an account.
-If you did not initiate this attempt, please be advised that someone entered your email on our login page.
+Security Advice:
+- Never share your password with anyone.
+- Ensure you are logging in on the official Majestic Interior website.
 
 Warm regards,
 Majestic Interior & Furniture Security Team
@@ -356,14 +428,19 @@ Majestic Interior & Furniture Security Team
       <h1>MAJESTIC INTERIOR &amp; FURNITURE</h1>
     </div>
     <div class="content">
-      <div class="badge">&#9888; Unsuccessful Login Attempt</div>
-      <p>An unsuccessful attempt to log in to <strong>Majestic Interior &amp; Furniture</strong> was detected using this email address.</p>
+      <div class="badge">&#9888; Security Alert: Unsuccessful Login Attempt</div>
+      <p>Hello <strong>{greeting_name}</strong>,</p>
+      <p>{explanation}</p>
       <div class="details">
-        <p style="margin: 4px 0;"><strong>Attempted Email:</strong> {entered_email}</p>
+        <p style="margin: 4px 0;"><strong>Account:</strong> {entered_email}</p>
+        <p style="margin: 4px 0;"><strong>Reason:</strong> {reason}</p>
         <p style="margin: 4px 0;"><strong>Date &amp; Time:</strong> {timestamp}</p>
-        <p style="margin: 4px 0;"><strong>Status:</strong> Failed (Invalid Credentials)</p>
+        <p style="margin: 4px 0;"><strong>Status:</strong> <span style="color: #c62828; font-weight: bold;">{status_text}</span></p>
       </div>
-      <p style="font-size: 13px; color: #666666;">If you attempted to sign in, please check your credentials or register an account. If this was not you, someone may have mistyped their email address.</p>
+      <p style="font-size: 13px; color: #666666;">
+        If this was you and you forgot your password, please verify your credentials or register an account.
+        If you did not initiate this attempt, please secure your credentials immediately.
+      </p>
     </div>
     <div class="footer">
       &copy; Majestic Interior &amp; Furniture Security. All rights reserved.
@@ -372,7 +449,7 @@ Majestic Interior & Furniture Security Team
 </body>
 </html>
 """
-    return send_email_via_resend(entered_email, subject, text_body, html_body)
+    return send_email_notification(entered_email, subject, text_body, html_body)
 
 def send_registration_success_email(user_email, user_name):
     """Sends a 'Registration Successful' welcome email to the newly registered user."""
@@ -716,7 +793,10 @@ def register():
             save_users(users)
 
             # Send registration welcome email
-            send_registration_success_email(email, name)
+            try:
+                send_registration_success_email(email, name)
+            except Exception as e:
+                print(f"Email sending failed: {sanitize_safe_error(e)}", flush=True)
 
             # Establish session for logged-in user
             session["user"] = {
@@ -777,13 +857,18 @@ def login():
                 return redirect(url_for("home"))
             else:
                 # Invalid Credentials Flow (wrong password or unregistered email):
-                # 1. Send "Login Failed" email to the entered email address
+                # 1. Send "Login Failed / Invalid Password" alert to the entered email address
                 # 2. Show error message on the Login page
+                user_name = user.get("name") if user else None
+                fail_reason = "Invalid Password" if user else "Unregistered Account"
                 try:
-                    send_login_failed_email(email)
+                    send_login_failed_email(email, user_name=user_name, reason=fail_reason)
                 except Exception as e:
                     print(f"Email sending failed: {sanitize_safe_error(e)}", flush=True)
-                flash("Invalid email or password. A security alert email has been sent to the entered address.", "error")
+                if user:
+                    flash("Invalid password entered. A security alert email has been sent to your email address.", "error")
+                else:
+                    flash("Invalid email or password. A security alert email has been sent to the entered address.", "error")
                 next_url = request.values.get("next", "").strip()
                 return render_template("login.html", email=email, next_url=next_url)
 
@@ -881,6 +966,7 @@ def payment():
             order_id = razorpay_order["id"]
 
             # Store order context in session for email notifications
+            session["last_order_id"] = order_id
             session["last_payment_amount"] = f"{amount_val:.2f}"
             session["last_order_customer_name"] = customer_name
             session["last_order_customer_email"] = customer_email
@@ -932,37 +1018,18 @@ def payment_success():
                 "razorpay_signature": signature
             }
             client.utility.verify_payment_signature(params_dict)
-
-            # Send Successful Payment Confirmation Email to user
-            if customer_email:
-                send_payment_success_email(
-                    user_email=customer_email,
-                    user_name=customer_name,
-                    amount=amount,
-                    order_id=order_id,
-                    payment_id=payment_id
-                )
-
-            return render_template(
-                "payment.html",
-                payment_status="success",
-                payment_id=payment_id,
-                order_id=order_id,
-                amount=amount,
-                currency="INR",
-                customer_name=customer_name,
-                customer_email=customer_email,
-                timestamp=datetime.now().strftime("%B %d, %Y at %I:%M %p")
-            )
         except razorpay.errors.SignatureVerificationError:
             if customer_email:
-                send_payment_failed_email(
-                    user_email=customer_email,
-                    user_name=customer_name,
-                    amount=amount,
-                    order_id=order_id,
-                    reason="Signature verification failed. The payment response could not be verified by the backend."
-                )
+                try:
+                    send_payment_failed_email(
+                        user_email=customer_email,
+                        user_name=customer_name,
+                        amount=amount,
+                        order_id=order_id,
+                        reason="Signature verification failed. The payment response could not be verified by the backend."
+                    )
+                except Exception as mail_err:
+                    print(f"Email sending failed: {sanitize_safe_error(mail_err)}", flush=True)
             return render_template(
                 "payment.html",
                 payment_status="failed",
@@ -973,13 +1040,16 @@ def payment_success():
             )
         except Exception as e:
             if customer_email:
-                send_payment_failed_email(
-                    user_email=customer_email,
-                    user_name=customer_name,
-                    amount=amount,
-                    order_id=order_id,
-                    reason=f"Verification error: {str(e)}"
-                )
+                try:
+                    send_payment_failed_email(
+                        user_email=customer_email,
+                        user_name=customer_name,
+                        amount=amount,
+                        order_id=order_id,
+                        reason=f"Verification error: {str(e)}"
+                    )
+                except Exception as mail_err:
+                    print(f"Email sending failed: {sanitize_safe_error(mail_err)}", flush=True)
             return render_template(
                 "payment.html",
                 payment_status="failed",
@@ -989,30 +1059,58 @@ def payment_success():
                 customer_email=customer_email
             )
 
+        # Verification succeeded: Send Successful Payment Confirmation Email to user safely
+        if customer_email:
+            try:
+                send_payment_success_email(
+                    user_email=customer_email,
+                    user_name=customer_name,
+                    amount=amount,
+                    order_id=order_id,
+                    payment_id=payment_id
+                )
+            except Exception as mail_err:
+                print(f"Payment success email dispatch failed: {sanitize_safe_error(mail_err)}", flush=True)
+
+        return render_template(
+            "payment.html",
+            payment_status="success",
+            payment_id=payment_id,
+            order_id=order_id,
+            amount=amount,
+            currency="INR",
+            customer_name=customer_name,
+            customer_email=customer_email,
+            timestamp=datetime.now().strftime("%B %d, %Y at %I:%M %p")
+        )
+
     return redirect(url_for("payment"))
 
 
 @app.route("/payment/failure", methods=["GET", "POST"])
 def payment_failure():
     reason = request.values.get("reason", "Payment was cancelled or dismissed by user.")
-    order_id = request.values.get("order_id", "")
+    order_id = request.values.get("order_id", "") or session.get("last_order_id", "")
     amount = request.values.get("amount", "") or session.get("last_payment_amount", "")
 
     user = session.get("user") or {}
-    customer_email = user.get("email") or session.get("last_order_customer_email", "")
-    customer_name = user.get("name") or session.get("last_order_customer_name", "Valued Customer")
+    customer_email = request.values.get("email", "").strip() or user.get("email") or session.get("last_order_customer_email", "")
+    customer_name = request.values.get("name", "").strip() or user.get("name") or session.get("last_order_customer_name", "Valued Customer")
 
-    # Send failed/cancelled email alert (deduplicated per order attempt)
+    # Send failed/cancelled email alert (deduplicated per order attempt unless reason or order changed)
     last_alerted = session.get("last_failed_alert_order")
-    if customer_email and order_id and last_alerted != order_id:
-        session["last_failed_alert_order"] = order_id
-        send_payment_failed_email(
-            user_email=customer_email,
-            user_name=customer_name,
-            amount=amount or "N/A",
-            order_id=order_id,
-            reason=reason
-        )
+    if customer_email and (not last_alerted or last_alerted != order_id):
+        session["last_failed_alert_order"] = order_id or f"failed_{int(datetime.now().timestamp())}"
+        try:
+            send_payment_failed_email(
+                user_email=customer_email,
+                user_name=customer_name,
+                amount=amount or "N/A",
+                order_id=order_id or "N/A",
+                reason=reason
+            )
+        except Exception as e:
+            print(f"Payment failure email dispatch failed: {sanitize_safe_error(e)}", flush=True)
 
     return render_template(
         "payment.html",
