@@ -1,8 +1,15 @@
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 .DS_Store
 Thumbs.db
 *.log
-__pycache__/
-.venv/
-.env
 scratch/
+
 

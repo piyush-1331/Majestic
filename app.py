@@ -51,11 +51,11 @@ def get_smtp_config():
         port = 587
     use_tls_str = os.getenv("SMTP_USE_TLS") or os.getenv("MAIL_USE_TLS") or "True"
     use_tls = use_tls_str.strip().lower() in ("true", "1", "yes")
-    username = (os.getenv("SMTP_USERNAME") or os.getenv("MAIL_USERNAME") or "").strip()
-    raw_password = os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_PASSWORD") or ""
+    username = (os.getenv("MAIL_USERNAME") or os.getenv("SMTP_USERNAME") or "").strip()
+    raw_password = os.getenv("MAIL_PASSWORD") or os.getenv("SMTP_PASSWORD") or ""
     # Strip spaces in case Google 16-character App Password was copied with spaces (e.g. 'abcd efgh ijkl mnop')
     password = raw_password.replace(" ", "").strip()
-    sender = os.getenv("SMTP_SENDER") or os.getenv("MAIL_SENDER") or (
+    sender = os.getenv("MAIL_SENDER") or os.getenv("SMTP_SENDER") or (
         f"Majestic Interior & Furniture <{username}>" if username else "noreply@majesticinterior.com"
     )
     return {
@@ -295,6 +295,189 @@ Majestic Interior & Furniture Team
 """
     return send_email_notification(user_email, subject, text_body, html_body)
 
+def send_payment_success_email(user_email, user_name, amount, order_id, payment_id):
+    """Sends a 'Payment Received Successfully' receipt email to the registered user."""
+    timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+    subject = f"Payment Successful (₹{amount}) — Majestic Interior & Furniture"
+
+    text_body = f"""Hello {user_name},
+
+Thank you! Your payment of ₹{amount} INR to Majestic Interior & Furniture has been successfully processed and cryptographically verified.
+
+Transaction Receipt:
+- Amount Paid: ₹{amount} INR
+- Payment ID: {payment_id}
+- Order ID: {order_id}
+- Date & Time: {timestamp}
+- Status: Completed & Verified (Razorpay Test Mode)
+
+Our design and booking team has been notified and will proceed with your order details shortly.
+
+Please keep this email for your transaction records. If you have any questions or require custom interior assistance, please reply directly to this email.
+
+Warm regards,
+Majestic Interior & Furniture Team
+"""
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {{ font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f7f7f7; margin: 0; padding: 20px; }}
+    .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }}
+    .header {{ background: #97262A; color: #ffffff; padding: 24px; text-align: center; }}
+    .header h1 {{ margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 1px; }}
+    .content {{ padding: 28px; color: #333333; line-height: 1.6; font-size: 15px; }}
+    .badge {{ display: inline-block; background: #e8f5e9; color: #2e7d32; font-weight: bold; padding: 6px 14px; border-radius: 4px; font-size: 13px; margin: 10px 0; }}
+    .amount-highlight {{ font-size: 28px; font-weight: 700; color: #97262A; margin: 12px 0; }}
+    .details {{ background: #fafafa; border-left: 4px solid #2e7d32; padding: 14px 18px; margin: 18px 0; border-radius: 0 4px 4px 0; }}
+    .details-table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
+    .details-table td {{ padding: 6px 0; font-size: 14px; }}
+    .details-table td.label {{ color: #777777; width: 35%; }}
+    .details-table td.val {{ color: #222222; font-weight: 600; }}
+    .note-box {{ background: #fdfaf6; border: 1px solid #f0e6dc; padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #6d4c41; margin-top: 18px; }}
+    .footer {{ background: #f0f0f0; padding: 16px; text-align: center; font-size: 12px; color: #777777; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>MAJESTIC INTERIOR &amp; FURNITURE</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{user_name}</strong>,</p>
+      <div class="badge">&#10004; Payment Received Successfully</div>
+      <div class="amount-highlight">₹{amount} <span style="font-size: 15px; color: #666; font-weight: normal;">INR</span></div>
+      <p>Your test payment has been successfully processed and verified on our server via Razorpay.</p>
+      <div class="details">
+        <table class="details-table">
+          <tr>
+            <td class="label">Payment ID:</td>
+            <td class="val"><code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">{payment_id}</code></td>
+          </tr>
+          <tr>
+            <td class="label">Order ID:</td>
+            <td class="val"><code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">{order_id}</code></td>
+          </tr>
+          <tr>
+            <td class="label">Amount Paid:</td>
+            <td class="val" style="color: #97262A; font-weight: 700;">₹{amount} INR</td>
+          </tr>
+          <tr>
+            <td class="label">Date &amp; Time:</td>
+            <td class="val">{timestamp}</td>
+          </tr>
+          <tr>
+            <td class="label">Verification:</td>
+            <td class="val" style="color: #2e7d32;">HMAC-SHA256 Signature Verified</td>
+          </tr>
+        </table>
+      </div>
+      <div class="note-box">
+        <strong>Order Status:</strong> Our design &amp; booking team has received your order details and will be in touch shortly. Please keep this digital receipt for your reference.
+      </div>
+    </div>
+    <div class="footer">
+      &copy; Majestic Interior &amp; Furniture. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return send_email_notification(user_email, subject, text_body, html_body)
+
+def send_payment_failed_email(user_email, user_name, amount, order_id, reason):
+    """Sends a 'Payment Incomplete or Cancelled' alert email to the customer."""
+    timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+    amount_display = f"₹{amount} INR" if amount and amount != "N/A" else "Payment Attempt"
+    subject = f"Payment Incomplete ({amount_display}) — Majestic Interior"
+
+    text_body = f"""Hello {user_name},
+
+We noticed that your recent payment attempt on Majestic Interior & Furniture was not completed.
+
+Attempt Details:
+- Amount: {amount_display}
+- Order ID: {order_id if order_id else 'N/A'}
+- Reason: {reason}
+- Date & Time: {timestamp}
+- Status: Failed / Incomplete
+
+Important Notice:
+If any amount was debited from your bank account or card during this attempt, it will be automatically refunded by your banking partner within 3 to 5 business days according to standard banking regulations.
+
+You can retry your transaction at any time by logging in to your Majestic Interior account.
+
+Warm regards,
+Majestic Interior & Furniture Support Team
+"""
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {{ font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f7f7f7; margin: 0; padding: 20px; }}
+    .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }}
+    .header {{ background: #97262A; color: #ffffff; padding: 24px; text-align: center; }}
+    .header h1 {{ margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 1px; }}
+    .content {{ padding: 28px; color: #333333; line-height: 1.6; font-size: 15px; }}
+    .badge {{ display: inline-block; background: #ffebee; color: #c62828; font-weight: bold; padding: 6px 14px; border-radius: 4px; font-size: 13px; margin: 10px 0; }}
+    .amount-highlight {{ font-size: 24px; font-weight: 700; color: #c62828; margin: 12px 0; }}
+    .details {{ background: #fafafa; border-left: 4px solid #c62828; padding: 14px 18px; margin: 18px 0; border-radius: 0 4px 4px 0; }}
+    .details-table {{ width: 100%; border-collapse: collapse; margin-top: 8px; }}
+    .details-table td {{ padding: 6px 0; font-size: 14px; }}
+    .details-table td.label {{ color: #777777; width: 35%; }}
+    .details-table td.val {{ color: #222222; font-weight: 600; }}
+    .help-box {{ background: #fff8e1; border: 1px solid #ffe082; padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #795548; margin: 18px 0; }}
+    .footer {{ background: #f0f0f0; padding: 16px; text-align: center; font-size: 12px; color: #777777; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>MAJESTIC INTERIOR &amp; FURNITURE</h1>
+    </div>
+    <div class="content">
+      <p>Hello <strong>{user_name}</strong>,</p>
+      <div class="badge">&#9888; Payment Incomplete or Cancelled</div>
+      <div class="amount-highlight">{amount_display}</div>
+      <p>Your recent payment attempt on Majestic Interior &amp; Furniture was not completed.</p>
+      <div class="details">
+        <table class="details-table">
+          <tr>
+            <td class="label">Order ID:</td>
+            <td class="val"><code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">{order_id if order_id else 'N/A'}</code></td>
+          </tr>
+          <tr>
+            <td class="label">Reason:</td>
+            <td class="val" style="color: #c62828;">{reason}</td>
+          </tr>
+          <tr>
+            <td class="label">Date &amp; Time:</td>
+            <td class="val">{timestamp}</td>
+          </tr>
+          <tr>
+            <td class="label">Status:</td>
+            <td class="val" style="color: #c62828;">Failed / Cancelled</td>
+          </tr>
+        </table>
+      </div>
+      <div class="help-box">
+        <strong>Automatic Refund Assurance:</strong> If any amount was debited from your card, UPI or bank account, it will automatically be refunded back to your original source of payment within 3-5 business days.
+      </div>
+      <p style="font-size: 13px; color: #666666;">You can log in to your account and try again whenever you are ready.</p>
+    </div>
+    <div class="footer">
+      &copy; Majestic Interior &amp; Furniture Support. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+"""
+    return send_email_notification(user_email, subject, text_body, html_body)
+
 # Context processor to make current_user available in all templates
 @app.context_processor
 def inject_user():
@@ -399,12 +582,16 @@ def register():
             }
 
             flash(f"Registration successful for {name}! A welcome email has been sent to {email}.", "success")
-            # Task 3 Requirement: Redirect to Home after registration
+            next_page = request.values.get("next", "").strip()
+            if next_page in ("payment", "/payment", "payment.html", "/payment.html"):
+                return redirect(url_for("payment"))
             return redirect(url_for("home"))
 
-        return render_template("register.html", name=name, email=email, phone=phone)
+        next_url = request.values.get("next", "").strip()
+        return render_template("register.html", name=name, email=email, phone=phone, next_url=next_url)
 
-    return render_template("register.html")
+    next_url = request.args.get("next", "").strip()
+    return render_template("register.html", next_url=next_url)
 
 # Route for User Login page (Task 2 & Task 4)
 @app.route("/login.html", methods=["GET", "POST"])
@@ -438,6 +625,9 @@ def login():
                     "email": user_email
                 }
                 flash(f"Login successful! Welcome back, {user_name}. A login confirmation email has been sent to {user_email}.", "success")
+                next_page = request.values.get("next", "").strip()
+                if next_page in ("payment", "/payment", "payment.html", "/payment.html"):
+                    return redirect(url_for("payment"))
                 return redirect(url_for("home"))
             else:
                 # Invalid Credentials Flow (wrong password or unregistered email):
@@ -445,11 +635,14 @@ def login():
                 # 2. Show error message on the Login page
                 send_login_failed_email(email)
                 flash("Invalid email or password. A security alert email has been sent to the entered address.", "error")
-                return render_template("login.html", email=email)
+                next_url = request.values.get("next", "").strip()
+                return render_template("login.html", email=email, next_url=next_url)
 
-        return render_template("login.html", email=email)
+        next_url = request.values.get("next", "").strip()
+        return render_template("login.html", email=email, next_url=next_url)
 
-    return render_template("login.html")
+    next_url = request.args.get("next", "").strip()
+    return render_template("login.html", next_url=next_url)
 
 # Route for User Logout
 @app.route("/logout")
@@ -486,10 +679,16 @@ def get_razorpay_client():
 @app.route("/payment.html", methods=["GET", "POST"])
 @app.route("/payment", methods=["GET", "POST"])
 def payment():
+    # Require user login before making any payment
+    user = session.get("user")
+    if not user:
+        flash("Please log in to your account to proceed with payment.", "error")
+        return redirect(url_for("login", next="payment"))
+
     if request.method == "POST":
         amount_raw = request.form.get("amount", "").strip()
-        customer_name = request.form.get("name", "").strip()
-        customer_email = request.form.get("email", "").strip()
+        customer_name = request.form.get("name", "").strip() or user.get("name", "Valued Customer")
+        customer_email = request.form.get("email", "").strip() or user.get("email", "")
 
         # Server-side amount validation
         if not amount_raw:
@@ -532,6 +731,11 @@ def payment():
             razorpay_order = client.order.create(data=order_data)
             order_id = razorpay_order["id"]
 
+            # Store order context in session for email notifications
+            session["last_payment_amount"] = f"{amount_val:.2f}"
+            session["last_order_customer_name"] = customer_name
+            session["last_order_customer_email"] = customer_email
+
             return render_template(
                 "payment.html",
                 checkout_ready=True,
@@ -540,8 +744,8 @@ def payment():
                 amount=f"{amount_val:.2f}",
                 amount_in_paise=amount_in_paise,
                 currency="INR",
-                customer_name=customer_name or session.get("user", {}).get("name", "Valued Customer"),
-                customer_email=customer_email or session.get("user", {}).get("email", "customer@example.com")
+                customer_name=customer_name,
+                customer_email=customer_email
             )
         except Exception as e:
             flash(f"Razorpay order creation failed: {str(e)}", "error")
@@ -557,6 +761,10 @@ def payment_success():
         order_id = request.form.get("razorpay_order_id", "").strip()
         signature = request.form.get("razorpay_signature", "").strip()
         amount = request.form.get("amount", "0.00").strip()
+
+        user = session.get("user") or {}
+        customer_email = request.form.get("email", "").strip() or user.get("email") or session.get("last_order_customer_email", "")
+        customer_name = request.form.get("name", "").strip() or user.get("name") or session.get("last_order_customer_name", "Valued Customer")
 
         if not payment_id or not order_id or not signature:
             flash("Incomplete payment response received from checkout.", "error")
@@ -576,6 +784,16 @@ def payment_success():
             }
             client.utility.verify_payment_signature(params_dict)
 
+            # Send Successful Payment Confirmation Email to user
+            if customer_email:
+                send_payment_success_email(
+                    user_email=customer_email,
+                    user_name=customer_name,
+                    amount=amount,
+                    order_id=order_id,
+                    payment_id=payment_id
+                )
+
             return render_template(
                 "payment.html",
                 payment_status="success",
@@ -583,21 +801,43 @@ def payment_success():
                 order_id=order_id,
                 amount=amount,
                 currency="INR",
+                customer_name=customer_name,
+                customer_email=customer_email,
                 timestamp=datetime.now().strftime("%B %d, %Y at %I:%M %p")
             )
         except razorpay.errors.SignatureVerificationError:
+            if customer_email:
+                send_payment_failed_email(
+                    user_email=customer_email,
+                    user_name=customer_name,
+                    amount=amount,
+                    order_id=order_id,
+                    reason="Signature verification failed. The payment response could not be verified by the backend."
+                )
             return render_template(
                 "payment.html",
                 payment_status="failed",
                 error_message="Signature verification failed. The payment response could not be verified by the backend.",
-                order_id=order_id
+                order_id=order_id,
+                amount=amount,
+                customer_email=customer_email
             )
         except Exception as e:
+            if customer_email:
+                send_payment_failed_email(
+                    user_email=customer_email,
+                    user_name=customer_name,
+                    amount=amount,
+                    order_id=order_id,
+                    reason=f"Verification error: {str(e)}"
+                )
             return render_template(
                 "payment.html",
                 payment_status="failed",
                 error_message=f"Verification error: {str(e)}",
-                order_id=order_id
+                order_id=order_id,
+                amount=amount,
+                customer_email=customer_email
             )
 
     return redirect(url_for("payment"))
@@ -607,15 +847,36 @@ def payment_success():
 def payment_failure():
     reason = request.values.get("reason", "Payment was cancelled or dismissed by user.")
     order_id = request.values.get("order_id", "")
+    amount = request.values.get("amount", "") or session.get("last_payment_amount", "")
+
+    user = session.get("user") or {}
+    customer_email = user.get("email") or session.get("last_order_customer_email", "")
+    customer_name = user.get("name") or session.get("last_order_customer_name", "Valued Customer")
+
+    # Send failed/cancelled email alert (deduplicated per order attempt)
+    last_alerted = session.get("last_failed_alert_order")
+    if customer_email and order_id and last_alerted != order_id:
+        session["last_failed_alert_order"] = order_id
+        send_payment_failed_email(
+            user_email=customer_email,
+            user_name=customer_name,
+            amount=amount or "N/A",
+            order_id=order_id,
+            reason=reason
+        )
+
     return render_template(
         "payment.html",
         payment_status="failed",
         error_message=reason,
-        order_id=order_id
+        order_id=order_id,
+        amount=amount,
+        customer_email=customer_email
     )
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
 
 

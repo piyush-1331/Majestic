@@ -109,6 +109,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					  {% endif %}
 					{% endwith %}
 					<form method="POST" action="{{ url_for('register') }}">
+						<input type="hidden" name="next" value="{{ next_url or request.args.get('next') or request.form.get('next') or '' }}">
 						<div style="margin-bottom: 15px;">
 							<input type="text" name="name" placeholder="Full Name" value="{{ name if name else '' }}" style="margin-right: 1.5%; margin-bottom: 15px;" required />
 							<input type="email" name="email" placeholder="Email Address" value="{{ email if email else '' }}" style="margin-bottom: 15px;" required />
@@ -124,7 +125,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 							<input type="submit" value="REGISTER">
 						</div>
 						<div class="auth-switch">
-							<p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+							<p>Already have an account? <a href="{{ url_for('login', next=next_url or request.args.get('next') or request.form.get('next') or '') }}">Login here</a></p>
 						</div>
 					</form>
 				</div>

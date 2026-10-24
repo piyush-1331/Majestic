@@ -120,7 +120,8 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<div style="margin-top: 15px; font-size: 13px; color: #777;">
 						<p style="margin-bottom: 6px;"><i class="glyphicon glyphicon-lock" style="color: #97262A;"></i> 256-Bit SSL Encryption</p>
 						<p style="margin-bottom: 6px;"><i class="glyphicon glyphicon-ok" style="color: #2ecc71;"></i> Server-Side Signature Verification</p>
-						<p><i class="glyphicon glyphicon-shield" style="color: #3498db;"></i> Zero Hard-Coded API Secrets</p>
+						<p style="margin-bottom: 6px;"><i class="glyphicon glyphicon-envelope" style="color: #e67e22;"></i> Instant Email Receipts &amp; Alerts</p>
+						<p><i class="glyphicon glyphicon-user" style="color: #27ae60;"></i> Authenticated Customer Checkout</p>
 					</div>
 				</div>
 
@@ -149,6 +150,10 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								<td><strong style="color: #97262A; font-size: 16px;">₹{{ amount }} {{ currency }}</strong></td>
 							</tr>
 							<tr>
+								<td>Receipt Email:</td>
+								<td><span style="color: #2e7d32;"><i class="glyphicon glyphicon-envelope"></i> Confirmation email sent to <strong>{{ customer_email or (current_user.email if current_user else '') }}</strong></span></td>
+							</tr>
+							<tr>
 								<td>Signature Status:</td>
 								<td><span class="label label-success">HMAC-SHA256 Verified</span></td>
 							</tr>
@@ -172,6 +177,9 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 						</div>
 						<h2 style="color: #e74c3c; margin-top: 0; font-weight: 700;">Payment Failed / Cancelled</h2>
 						<p style="color: #555; font-size: 15px;">{{ error_message if error_message else "The transaction was cancelled or could not be completed." }}</p>
+						<p style="color: #888; font-size: 13px; margin-top: 8px;">
+							<i class="glyphicon glyphicon-envelope"></i> A notification email has been dispatched to <strong>{{ customer_email or (current_user.email if current_user else 'your registered email') }}</strong>.
+						</p>
 
 						{% if order_id %}
 						<table class="payment-details-table">
@@ -228,6 +236,8 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 							<input type="hidden" name="razorpay_order_id" id="razorpay_order_id">
 							<input type="hidden" name="razorpay_signature" id="razorpay_signature">
 							<input type="hidden" name="amount" value="{{ amount }}">
+							<input type="hidden" name="name" value="{{ customer_name }}">
+							<input type="hidden" name="email" value="{{ customer_email }}">
 						</form>
 
 						<script>
@@ -255,7 +265,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 								},
 								"modal": {
 									"ondismiss": function(){
-										window.location.href = "{{ url_for('payment_failure') }}?reason=Payment+cancelled+by+user&order_id={{ order_id }}";
+										window.location.href = "{{ url_for('payment_failure') }}?reason=Payment+cancelled+by+user&order_id={{ order_id }}&amount={{ amount }}";
 									}
 								}
 							};
@@ -264,7 +274,7 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 
 							rzp1.on('payment.failed', function (response){
 								var errorReason = response.error ? response.error.description : 'Payment Failed';
-								window.location.href = "{{ url_for('payment_failure') }}?reason=" + encodeURIComponent(errorReason) + "&order_id={{ order_id }}";
+								window.location.href = "{{ url_for('payment_failure') }}?reason=" + encodeURIComponent(errorReason) + "&order_id={{ order_id }}&amount={{ amount }}";
 							});
 
 							document.getElementById('rzp-button1').onclick = function(e){
@@ -298,19 +308,22 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 
 						<form method="POST" action="{{ url_for('payment') }}">
 							<label style="font-weight: 600; color: #444; margin-bottom: 6px;">Payment Amount (INR):</label>
-							<div class="payment-amount-box">
+							<div class="payment-amount-box" onclick="document.getElementById('amount-input').focus();" style="cursor: text;">
 								<span class="currency-symbol">₹</span>
-								<input type="number" id="amount-input" name="amount" step="0.01" min="1" placeholder="Enter Amount (e.g. 500)" class="full-width payment-input-amount" value="{{ amount if amount else '500' }}" required />
+								<input type="number" id="amount-input" name="amount" step="0.01" min="1" placeholder="Enter Amount (e.g. 500)" class="payment-input-amount" value="{{ amount if amount else '500' }}" required />
 							</div>
 
 							<div style="margin-bottom: 15px;">
 								<label style="font-weight: 600; color: #444; margin-bottom: 6px;">Customer Name:</label>
-								<input type="text" name="name" placeholder="Full Name" value="{{ current_user.name if current_user else 'Guest Customer' }}" class="full-width" style="margin-bottom: 15px;" required />
+								<input type="text" name="name" placeholder="Full Name" value="{{ current_user.name if current_user else '' }}" class="full-width" style="margin-bottom: 15px;" required />
 							</div>
 
 							<div style="margin-bottom: 15px;">
-								<label style="font-weight: 600; color: #444; margin-bottom: 6px;">Email Address:</label>
-								<input type="email" name="email" placeholder="Email Address" value="{{ current_user.email if current_user else 'customer@example.com' }}" class="full-width" style="margin-bottom: 15px;" required />
+								<label style="font-weight: 600; color: #444; margin-bottom: 6px;">
+									Email Address:
+									<span style="font-size: 12px; color: #777; font-weight: normal; margin-left: 6px;">(Payment receipt will be sent here)</span>
+								</label>
+								<input type="email" name="email" placeholder="Email Address" value="{{ current_user.email if current_user else '' }}" class="full-width" style="margin-bottom: 15px;" required />
 							</div>
 
 							<div style="margin-top: 20px;">
