@@ -1,0 +1,374 @@
+<!--A Design by W3layouts
+Author: W3layout
+Author URL: http://w3layouts.com
+License: Creative Commons Attribution 3.0 Unported
+License URL: http://creativecommons.org/licenses/by/3.0/
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Majestic a Interior & Furniture Category Flat Bootstrap responsive Website Template | Payment :: w3layouts</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="keywords" content="Majestic Responsive web template, Bootstrap Web Templates, Flat Web Templates, Andriod Compatible web template, 
+Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyErricsson, Motorola web design" />
+<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
+<link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel='stylesheet' type='text/css' />
+<link href="{{ url_for('static', filename='css/style.css') }}" rel='stylesheet' type='text/css' />
+<link href='http://fonts.googleapis.com/css?family=Titillium+Web:400,200,200italic,300,300italic,400italic,600,600italic,700,700italic,900' rel='stylesheet' type='text/css'>
+<script src="{{ url_for('static', filename='js/jquery-1.11.0.min.js') }}"></script>
+<!---- start-smoth-scrolling---->
+<script type="text/javascript" src="{{ url_for('static', filename='js/move-top.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/easing.js') }}"></script>
+<script type="text/javascript">
+	jQuery(document).ready(function($) {
+		$(".scroll").click(function(event){		
+			event.preventDefault();
+			$('html,body').animate({scrollTop:$(this.hash).offset().top},1000);
+		});
+	});
+</script>
+<!-- Razorpay Checkout SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+	<!----start-header---->
+	<div class="header" id="home">
+		<div class="container">
+			<div class="logo">
+				<a href="{{ url_for('home') }}" title="Majestic Home"><img src="{{ url_for('static', filename='images/logo-2.png') }}" alt="Majestic Home"></a>
+			</div>
+			<div class="navigation">
+			 <span class="menu"></span> 
+				<ul class="navig">
+					<li><a href="{{ url_for('home') }}">Home</a><span> </span></li>
+					<li><a href="{{ url_for('about') }}">About</a><span> </span></li>
+					<li><a href="{{ url_for('blog') }}">Blog</a><span> </span></li>
+					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
+					<li><a href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
+					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
+					<li><a class="active" href="{{ url_for('payment') }}">Payment</a><span> </span></li>
+					{% if current_user %}
+					<li><span class="nav-user-greeting"><i class="glyphicon glyphicon-user"></i> {{ current_user.name.split()[0] }}</span></li>
+					<li><a class="btn-nav-logout" href="{{ url_for('logout') }}"><i class="glyphicon glyphicon-log-out"></i> Logout</a></li>
+					{% else %}
+					<li><a class="btn-nav-login" href="{{ url_for('login') }}">Login</a></li>
+					<li><a class="btn-nav-register" href="{{ url_for('register') }}">Register</a></li>
+					{% endif %}
+				</ul>
+			</div>
+				 <!-- script-for-menu -->
+		 <script>
+				$("span.menu").click(function(){
+					$(" ul.navig").slideToggle("slow" , function(){
+					});
+				});
+		 </script>
+		 <!-- script-for-menu -->
+		</div>
+	</div>	
+	<!----end-header---->
+
+	<!--payment-starts-->
+	<div class="contact">
+		<div class="container">
+			<div class="contact-top">
+				<div class="col-md-4 contact-left heading">
+					<h1>PAYMENT GATEWAY</h1>
+					<p>Demonstrating secure Razorpay Payment Gateway integration in Test Mode for custom interior bookings and furniture orders.</p>
+				</div>
+				<div class="col-md-8 contact-right">
+					<img src="{{ url_for('static', filename='images/b-1.jpg') }}" alt="Majestic Payment" style="width: 100%; height: 260px; object-fit: cover; border: 1px solid #e0e0e0; border-radius: 4px;" />
+				</div>
+				<div class="clearfix"></div>
+			</div>
+
+			<!-- Flash messages with auto-fadeout -->
+			{% with messages = get_flashed_messages(with_categories=true) %}
+			  {% if messages %}
+			    <div class="flash-message-wrapper" style="margin-top: 25px; margin-bottom: 25px;">
+			      {% for category, message in messages %}
+			        <div class="majestic-flash-alert majestic-alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+			          <span class="flash-icon">{{ '✔' if category == 'success' else ('ℹ' if category == 'info' else '⚠') }}</span>
+			          <span class="flash-text">{{ message }}</span>
+			          <button type="button" class="flash-close" aria-label="Close" onclick="$(this).closest('.majestic-flash-alert').fadeOut(300);">&times;</button>
+			        </div>
+			      {% endfor %}
+			    </div>
+			    <script>
+			      $(document).ready(function() {
+			        setTimeout(function() {
+			          $(".flash-message-wrapper .majestic-flash-alert").fadeOut(600, function() {
+			            $(this).remove();
+			          });
+			        }, 4500);
+			      });
+			    </script>
+			  {% endif %}
+			{% endwith %}
+
+			<div class="contact-bottom" style="margin-top: 20px;">
+				<div class="col-md-4 contact-left heading">
+					<h2>CHECKOUT &amp; BILLING</h2>
+					<p>Enter the booking amount below to initiate a server-side order with Razorpay Test Mode.</p>
+					
+					<div class="payment-sandbox-alert" style="margin-top: 25px;">
+						<strong><i class="glyphicon glyphicon-info-sign"></i> TEST MODE DEMO</strong><br>
+						This demonstration connects to the Razorpay Sandbox API. Real bank accounts or cards will <u>never</u> be charged.
+					</div>
+
+					<div style="margin-top: 15px; font-size: 13px; color: #777;">
+						<p style="margin-bottom: 6px;"><i class="glyphicon glyphicon-lock" style="color: #97262A;"></i> 256-Bit SSL Encryption</p>
+						<p style="margin-bottom: 6px;"><i class="glyphicon glyphicon-ok" style="color: #2ecc71;"></i> Server-Side Signature Verification</p>
+						<p><i class="glyphicon glyphicon-shield" style="color: #3498db;"></i> Zero Hard-Coded API Secrets</p>
+					</div>
+				</div>
+
+				<div class="col-md-8 contact-right">
+
+					<!-- CASE 1: PAYMENT SUCCESSFUL RESULT -->
+					{% if payment_status == 'success' %}
+					<div class="payment-status-card payment-status-success">
+						<div class="status-icon-circle icon-success">
+							<i class="glyphicon glyphicon-ok"></i>
+						</div>
+						<h2 style="color: #2ecc71; margin-top: 0; font-weight: 700;">Payment Successful!</h2>
+						<p style="color: #555; font-size: 15px;">Your test transaction was cryptographically verified on the backend.</p>
+
+						<table class="payment-details-table">
+							<tr>
+								<td>Payment ID:</td>
+								<td><code>{{ payment_id }}</code></td>
+							</tr>
+							<tr>
+								<td>Order ID:</td>
+								<td><code>{{ order_id }}</code></td>
+							</tr>
+							<tr>
+								<td>Amount Paid:</td>
+								<td><strong style="color: #97262A; font-size: 16px;">₹{{ amount }} {{ currency }}</strong></td>
+							</tr>
+							<tr>
+								<td>Signature Status:</td>
+								<td><span class="label label-success">HMAC-SHA256 Verified</span></td>
+							</tr>
+							<tr>
+								<td>Date &amp; Time:</td>
+								<td>{{ timestamp }}</td>
+							</tr>
+						</table>
+
+						<div style="margin-top: 25px;">
+							<a href="{{ url_for('payment') }}" class="btn-pay-now" style="text-decoration: none; margin-right: 10px;">Make Another Payment</a>
+							<a href="{{ url_for('home') }}" style="color: #97262A; font-weight: 600; text-decoration: underline;">Return to Home</a>
+						</div>
+					</div>
+
+					<!-- CASE 2: PAYMENT FAILED OR CANCELLED RESULT -->
+					{% elif payment_status == 'failed' %}
+					<div class="payment-status-card payment-status-failed">
+						<div class="status-icon-circle icon-failed">
+							<i class="glyphicon glyphicon-remove"></i>
+						</div>
+						<h2 style="color: #e74c3c; margin-top: 0; font-weight: 700;">Payment Failed / Cancelled</h2>
+						<p style="color: #555; font-size: 15px;">{{ error_message if error_message else "The transaction was cancelled or could not be completed." }}</p>
+
+						{% if order_id %}
+						<table class="payment-details-table">
+							<tr>
+								<td>Order ID:</td>
+								<td><code>{{ order_id }}</code></td>
+							</tr>
+							<tr>
+								<td>Status:</td>
+								<td><span class="label label-danger">Failed / Incomplete</span></td>
+							</tr>
+						</table>
+						{% endif %}
+
+						<div style="margin-top: 25px;">
+							<a href="{{ url_for('payment') }}" class="btn-pay-now" style="text-decoration: none; background: #e74c3c;">Try Again</a>
+						</div>
+					</div>
+
+					<!-- CASE 3: ORDER CREATED & READY FOR CHECKOUT -->
+					{% elif checkout_ready %}
+					<div class="payment-card">
+						<h3 style="margin-top: 0; color: #2a2017; font-weight: 700;">Razorpay Test Order Generated</h3>
+						<p style="color: #666; margin-bottom: 20px;">An official order has been created on the backend. Click below to launch Razorpay Checkout.</p>
+
+						<table class="payment-details-table" style="margin: 0 0 20px 0;">
+							<tr>
+								<td>Razorpay Order ID:</td>
+								<td><code>{{ order_id }}</code></td>
+							</tr>
+							<tr>
+								<td>Payable Amount:</td>
+								<td><strong style="color: #97262A; font-size: 18px;">₹{{ amount }} INR</strong></td>
+							</tr>
+							<tr>
+								<td>Currency:</td>
+								<td>{{ currency }} ({{ amount_in_paise }} Paise)</td>
+							</tr>
+						</table>
+
+						<div style="margin-top: 20px;">
+							<button id="rzp-button1" class="btn-pay-now" style="width: 100%; font-size: 17px; padding: 14px;">
+								<i class="glyphicon glyphicon-credit-card"></i> Open Razorpay Checkout (₹{{ amount }})
+							</button>
+						</div>
+
+						<p class="security-note text-center">
+							<i class="glyphicon glyphicon-info-sign"></i> Use Razorpay Test credentials (UPI or Test Card) to complete or cancel.
+						</p>
+
+						<!-- Hidden Form for Server-Side Signature Verification -->
+						<form id="payment-verify-form" method="POST" action="{{ url_for('payment_success') }}" style="display: none;">
+							<input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
+							<input type="hidden" name="razorpay_order_id" id="razorpay_order_id">
+							<input type="hidden" name="razorpay_signature" id="razorpay_signature">
+							<input type="hidden" name="amount" value="{{ amount }}">
+						</form>
+
+						<script>
+							var options = {
+								"key": "{{ key_id }}",
+								"amount": "{{ amount_in_paise }}",
+								"currency": "{{ currency }}",
+								"name": "Majestic Interior & Furniture",
+								"description": "PBL Test Mode Payment Demonstration",
+								"image": "{{ url_for('static', filename='images/logo-2.png') }}",
+								"order_id": "{{ order_id }}",
+								"handler": function (response){
+									// Send payment response to /payment/success for backend signature verification
+									document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+									document.getElementById('razorpay_order_id').value = response.razorpay_order_id;
+									document.getElementById('razorpay_signature').value = response.razorpay_signature;
+									document.getElementById('payment-verify-form').submit();
+								},
+								"prefill": {
+									"name": "{{ customer_name }}",
+									"email": "{{ customer_email }}"
+								},
+								"theme": {
+									"color": "#97262A"
+								},
+								"modal": {
+									"ondismiss": function(){
+										window.location.href = "{{ url_for('payment_failure') }}?reason=Payment+cancelled+by+user&order_id={{ order_id }}";
+									}
+								}
+							};
+
+							var rzp1 = new Razorpay(options);
+
+							rzp1.on('payment.failed', function (response){
+								var errorReason = response.error ? response.error.description : 'Payment Failed';
+								window.location.href = "{{ url_for('payment_failure') }}?reason=" + encodeURIComponent(errorReason) + "&order_id={{ order_id }}";
+							});
+
+							document.getElementById('rzp-button1').onclick = function(e){
+								rzp1.open();
+								e.preventDefault();
+							}
+
+							// Automatically open checkout modal for convenient demonstration
+							$(document).ready(function() {
+								setTimeout(function() {
+									rzp1.open();
+								}, 800);
+							});
+						</script>
+					</div>
+
+					<!-- CASE 4: INITIAL PAYMENT INITIATION FORM -->
+					{% else %}
+					<div class="payment-card">
+						<h3 style="margin-top: 0; color: #2a2017; font-weight: 700; margin-bottom: 8px;">Order Details</h3>
+						<p style="color: #666; margin-bottom: 20px;">Choose a quick amount or enter a custom amount to generate a Razorpay Test Order.</p>
+
+						<!-- Quick Amount Chips -->
+						<div class="quick-amounts">
+							<span style="font-weight: 600; color: #555; margin-right: 8px;">Quick Amounts:</span>
+							<span class="quick-amount-chip" onclick="setAmount(100)">₹100</span>
+							<span class="quick-amount-chip" onclick="setAmount(500)">₹500</span>
+							<span class="quick-amount-chip" onclick="setAmount(1500)">₹1,500</span>
+							<span class="quick-amount-chip" onclick="setAmount(5000)">₹5,000</span>
+						</div>
+
+						<form method="POST" action="{{ url_for('payment') }}">
+							<label style="font-weight: 600; color: #444; margin-bottom: 6px;">Payment Amount (INR):</label>
+							<div class="payment-amount-box">
+								<span class="currency-symbol">₹</span>
+								<input type="number" id="amount-input" name="amount" step="0.01" min="1" placeholder="Enter Amount (e.g. 500)" class="full-width payment-input-amount" value="{{ amount if amount else '500' }}" required />
+							</div>
+
+							<div style="margin-bottom: 15px;">
+								<label style="font-weight: 600; color: #444; margin-bottom: 6px;">Customer Name:</label>
+								<input type="text" name="name" placeholder="Full Name" value="{{ current_user.name if current_user else 'Guest Customer' }}" class="full-width" style="margin-bottom: 15px;" required />
+							</div>
+
+							<div style="margin-bottom: 15px;">
+								<label style="font-weight: 600; color: #444; margin-bottom: 6px;">Email Address:</label>
+								<input type="email" name="email" placeholder="Email Address" value="{{ current_user.email if current_user else 'customer@example.com' }}" class="full-width" style="margin-bottom: 15px;" required />
+							</div>
+
+							<div style="margin-top: 20px;">
+								<input type="submit" value="PROCEED TO PAY NOW" class="btn-pay-now" style="width: 100%;">
+							</div>
+
+							<p class="security-note text-center">
+								<i class="glyphicon glyphicon-lock"></i> Secured with Razorpay Test Mode • Keys stored safely in <code>.env</code>
+							</p>
+						</form>
+
+						<script>
+							function setAmount(val) {
+								document.getElementById('amount-input').value = val;
+							}
+						</script>
+					</div>
+					{% endif %}
+
+				</div>
+				<div class="clearfix"></div>
+			</div>
+		</div>
+	</div>
+	<!----payment-end---->
+
+	<!--footer-starts--> 
+	<div class="footer">
+		<div class="container">
+			<div class="footer-top">
+				<div class="col-md-4 footer-left">
+					<p>Design by <a href="http://w3layouts.com/" target="_blank" rel="noopener"> W3layouts</a></p>
+				</div>
+				<div class="col-md-4 footer-left">
+					<h3>Follow Us</h3>
+					<ul>
+						<li><a href="#" title="Facebook"><span class="fb"> </span></a></li>
+						<li><a href="#" title="Twitter"><span class="twit"> </span></a></li>
+						<li><a href="#" title="Google Plus"><span class="google"> </span></a></li>
+						<li><a href="#" title="Pinterest"><span class="pin"> </span></a></li>
+					</ul>
+				</div>
+				<div class="col-md-4 footer-left">
+					<h3>Address</h3>
+					<p>The company name, 
+					<span>Lorem ipsum dolor,</span>
+					Glasglow Dr 40 Fe 72.</p>
+				</div>
+				<div class="clearfix"></div>
+			</div>
+		</div>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				$().UItoTop({ easingType: 'easeOutQuart' });
+			});
+		</script>
+		<a href="#home" id="toTop" class="scroll" title="To Top"><span id="toTopHover"> </span></a>
+	</div>
+	<!--footer-ends--> 
+</body>
+</html>

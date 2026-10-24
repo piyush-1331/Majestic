@@ -11,14 +11,14 @@ A full-featured interior design and furniture e-commerce website built by integr
 | **Task 1** | **Website Integration Using Flask** | Converting static HTML/CSS/JS template into a structured Flask web app with dynamic routing. | ✅ **Completed** |
 | **Task 2** | **User Login & Registration Pages** | Designing separate Login and Registration pages styled after `contact.html` with server-side validation. | ✅ **Completed** |
 | **Task 3** | **Registration Processing & Home Display** | Processing registration POST data, storing in JSON, and rendering registered user cards on Home. | ✅ **Completed** |
-| **Task 4** | **Email Notifications** | Automated login confirmation & security alert emails via SMTP with `.env` configuration. | ✅ **Completed** |
-| **Task 5** | **Payment Gateway Integration** | Checkout and payment processing. | ⏳ *Not Implemented Yet* |
+| **Task 4** | **Email Notifications** | Automated login confirmation, security alerts & registration emails via SMTP with `.env` configuration. | ✅ **Completed** |
+| **Task 5** | **Payment Gateway Integration** | Demonstrating secure Razorpay Test Mode checkout, backend order creation, and server-side signature verification. | ✅ **Completed** |
 
 ---
 
 ## 📖 Project Overview
 
-The Majestic project transforms an elegant, multi-page static website template into a dynamic Python Flask web application. It retains all original design aesthetics—including typography (Titillium Web, Lato), responsive Bootstrap grids, FlexSlider banners, Chocolat lightbox galleries, and custom animations—while powering page delivery, client authentication flows, and automated email security notifications through Python.
+The Majestic project transforms an elegant, multi-page static website template into a dynamic Python Flask web application. It retains all original design aesthetics—including typography (Titillium Web, Lato), responsive Bootstrap grids, FlexSlider banners, Chocolat lightbox galleries, and custom animations—while powering page delivery, client authentication flows, automated email security notifications, and full-stack Razorpay payment processing in Test Mode.
 
 ---
 
@@ -31,27 +31,32 @@ The primary development effort spans several architectural layers:
    - Session-based feedback using `flask.flash()` and secret key configuration.
    - RESTful request handling supporting `GET` for page rendering and `POST` for form submissions.
 2. **Dynamic Templating (Jinja2)**:
-   - Asset linking transformed from hard-coded relative paths to `{{ url_for('static', filename='...') }}` across all 9 pages.
+   - Asset linking transformed from hard-coded relative paths to `{{ url_for('static', filename='...') }}` across all 10 pages.
    - Internal navigation links rewritten to dynamic route endpoints using `{{ url_for(...) }}`.
-   - Conditional rendering blocks (`{% if users %}`, `{% for user in users %}`, and `{% with messages = get_flashed_messages() %}`).
+   - Conditional rendering blocks (`{% if users %}`, `{% if current_user %}`, and `{% with messages = get_flashed_messages() %}`).
 3. **Forms & Client Input Handling**:
-   - Developed registration and login forms with appropriate HTML5 input types (`text`, `email`, `tel`, `password`).
+   - Developed registration, login, and payment checkout forms with appropriate HTML5 input types (`text`, `email`, `tel`, `password`, `number`).
    - Maintained visual harmony with the Majestic contact form layout.
 4. **Data Persistence**:
    - Implemented JSON storage helper functions (`load_users()`, `save_users()`) to persist registered client records in `data/users.json`.
 5. **Form Validation**:
-   - Added robust server-side validation preventing blank fields, password mismatches, and duplicate email entries.
+   - Added robust server-side validation preventing blank fields, password mismatches, duplicate email entries, and non-numeric or negative transaction amounts.
 6. **SMTP Email Notification System (`smtplib`, `email.mime`)**:
    - Integrated automated email dispatch using Python's built-in `smtplib` and `email.mime` libraries with TLS support.
    - Designed dual-format (HTML and plain-text fallback) emails branded with Majestic theme styling (`#97262A`).
    - Implemented secure credential management via environment variables (`.env`) loaded by `python-dotenv`.
-   - Added graceful simulation fallbacks so the application functions reliably in both connected and offline demonstration modes.
+7. **Razorpay Payment Gateway Integration (`razorpay`, Test Mode)**:
+   - Integrated Razorpay Python SDK using environment variables (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`).
+   - Implemented server-side amount validation, conversion to smallest currency unit (paise), and official Razorpay Test Order generation.
+   - Seamless frontend Razorpay Checkout modal launch with branded theme styling.
+   - Strict server-side cryptographic signature verification (`client.utility.verify_payment_signature`) preventing client-side forgery.
+   - Comprehensive handling of successful payments, cancellations, and backend errors.
 
 ---
 
 ## 🛠️ Implementation Approach
 
-The transition from a static website to an integrated Flask application was performed in four systematic phases:
+The transition from a static website to an integrated Flask application was performed in five systematic phases:
 
 ### Phase 1: Task 1 — Flask Architecture & Routing
 1. **Asset Restructuring**: Grouped CSS, JavaScript, images, and glyphicon fonts into the `static/` directory; moved HTML files into the `templates/` directory.
@@ -71,97 +76,108 @@ The transition from a static website to an integrated Flask application was perf
 3. **Post-Redirect-Get (PRG) Pattern**: Upon valid registration, user data is saved to `data/users.json`, a success message is flashed, and the client is redirected to `/` via `redirect(url_for('home'))`.
 4. **Home Page Rendering**: Updated `home()` to read `data/users.json` and pass `users` to `index.html`. Added a responsive "REGISTERED USER DETAILS" card section.
 
-### Phase 4: Task 4 — Email Notification System (Login Authentication)
-1. **Environment Configuration**: Created `.env.example` defining standard SMTP configuration keys (`SMTP_SERVER`, `SMTP_PORT`, `SMTP_USE_TLS`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_SENDER`). Added `.env` to `.gitignore` to prevent credential exposure.
-2. **Email Engine**: Created `send_email_notification()`, `send_login_success_email()`, and `send_login_failed_email()` supporting TLS authentication, custom subjects, and branded HTML templates.
-3. **Authentication & Dispatch in `/login`**:
-   - For valid credentials: user is authenticated, "Login Successful" email is sent to their registered address, and a success message is displayed.
-   - For invalid credentials (wrong password or unregistered email): "Login Failed" security alert is sent to the entered email address, and an error message is displayed on the login page.
-4. **Safe Fallback**: Enabled simulation logging when `.env` is unconfigured, preventing any server crash during offline evaluations.
+### Phase 4: Task 4 — Email Notification System (Login & Register Authentication)
+1. **Environment Configuration**: Created `.env.example` defining standard SMTP configuration keys. Added `.env` to `.gitignore`.
+2. **Email Engine**: Created `send_email_notification()`, `send_login_success_email()`, `send_login_failed_email()`, and `send_registration_success_email()`.
+3. **Session & Navbar Enhancements**:
+   - Successful login sets `session["user"]` and redirects to Home.
+   - When logged in, "Login" and "Register" buttons disappear and are replaced by the user greeting and a **Logout** button.
+   - Themed custom flash messages to match `#2a2017` header styling with 4.5s auto-fadeout.
+
+### Phase 5: Task 5 — Razorpay Payment Gateway Demonstration (Test Mode)
+1. **SDK Setup**: Installed `razorpay` and added to `requirements.txt`.
+2. **Environment Variables**: Defined `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in `.env` and `.env.example`.
+3. **Payment Page**: Designed `templates/payment.html` with responsive layout, quick amount chips (₹100, ₹500, ₹1,500, ₹5,000), test mode banner, and status result cards.
+4. **Order Creation & Validation**: Implemented server-side validation (rejecting empty, non-numeric, zero, negative, or <₹1 amounts) and created Razorpay Test Orders via `client.order.create()`.
+5. **Checkout & Signature Verification**:
+   - Razorpay Checkout modal launches with `order_id`, `amount`, and `key_id`.
+   - On payment success, client response is sent via POST to `/payment/success` where HMAC-SHA256 signature is verified via `client.utility.verify_payment_signature()`.
+   - On cancellation/failure, handles redirection to `/payment/failure`.
 
 ---
 
 ## 🌟 Project Functionality
 
 Currently, users can:
-- **Browse All Pages**: Navigate seamlessly across Home, About, Blog, Pages, Gallery, and Contact without 404 errors or page reloads.
+- **Browse All Pages**: Navigate seamlessly across Home, About, Blog, Pages, Gallery, Contact, and Payment without 404 errors.
 - **Experience Rich Media**: View sliding hero banners (FlexSlider) on Home and interactive lightbox popups (Chocolat) on Gallery.
 - **Register an Account**:
-  - Enter Full Name, Email, Phone Number, Password, and Confirm Password on `/register`.
-  - Receive instant validation feedback if fields are blank, passwords mismatch, or email already exists.
-  - Automatically redirect to Home upon successful registration.
-- **View Registered Profiles on Home**:
-  - The Home page displays verified client cards with user initials, Name, Email, and Phone number.
-- **Log In with Email Notifications (Task 4)**:
-  - Enter credentials on `/login`.
-  - **Valid Credentials**: Authenticated successfully, green confirmation banner displayed on site, and "Login Successful" notification dispatched to registered email.
-  - **Invalid Credentials**: Red error alert displayed on site, and "Security Alert: Unsuccessful Login Attempt" dispatched to entered email address.
+  - Enter Name, Email, Phone, and Password on `/register`.
+  - Receive instant validation feedback.
+  - Receive automated "Registration Successful" welcome email.
+  - Automatically logged in and redirected to Home.
+- **Log In with Automated Email Notifications**:
+  - Valid Credentials: "Login Successful" email dispatched to registered address, session established, redirected to Home.
+  - Invalid Credentials: "Security Alert: Unsuccessful Login Attempt" dispatched to entered address, error shown on login page.
+- **Dynamic Navigation Bar**:
+  - Shows styled "Login" and "Register" pill buttons when logged out.
+  - Shows user greeting badge (`Hi, [Name]`) and red **Logout** button when logged in.
+- **Demonstrate Razorpay Payment Gateway (Task 5)**:
+  - Visit `/payment` directly from the top navigation.
+  - Clear test mode banner confirms sandbox mode (no real money debited).
+  - Select quick amount chips or enter a custom amount.
+  - Server validates amount and creates a Razorpay Test Order.
+  - Razorpay Checkout modal opens with test payment options (Cards, NetBanking, Wallet, UPI).
+  - Cryptographic server-side signature verification displays verified payment receipts (Payment ID, Order ID, Amount, Timestamp).
+  - Cancellation or failed payments display appropriate failure cards with a "Try Again" option.
 
 ---
 
-## 📧 Email Notification System (Task 4)
+## 💳 Razorpay Payment Gateway Integration (Task 5)
 
-### 1. Valid Login Flow
+### 1. Payment Integration Flow
 ```text
-[ User enters registered Email & correct Password ]
-                     │
-                     ▼
-             [ POST /login ]
-                     │
-         User matched in users.json?
-                     │  (YES)
-                     ▼
-     [ Authenticate User Session ]
-                     │
-                     ├──► [ Dispatch "Login Successful" Email ]
-                     │    Recipient: user["email"] (Registered email)
-                     │    Subject: "Majestic Interior — Login Successful"
-                     │    Content: User Name, Account Email, Timestamp, Security notice
-                     │
-                     ▼
-     [ Flash Green Success Alert on Website ]
-     "Login successful! Welcome back, {Name}. A login confirmation email has been sent to {Email}."
+User
+ │
+ ▼
+Payment Page (/payment)
+ │
+ │ Submits Amount (e.g. ₹500)
+ ▼
+Flask Backend (POST /payment)
+ │
+ ├── Validates Amount (> 0, numeric, >= ₹1.00)
+ ├── Converts to Paise (50000 paise)
+ ├── Calls Razorpay API: client.order.create()
+ └── Generates Razorpay order_id
+ ▼
+Razorpay Checkout (checkout.js on payment.html)
+ │
+ │ User enters Razorpay Test Card / UPI details
+ ▼
+Test Payment Processed by Sandbox
+ │
+ ├── User Cancels ──────────► [ GET /payment/failure ] ──► "Payment Cancelled"
+ │
+ └── Payment Successful
+           │
+           ▼ (razorpay_payment_id, razorpay_order_id, razorpay_signature)
+      POST /payment/success
+           │
+           ▼
+      Flask Backend Signature Verification
+      client.utility.verify_payment_signature(params_dict)
+           │
+           ├── Signature Mismatch ──► "Verification Failed (Tampering Alert)"
+           │
+           └── Signature Valid ─────► "Payment Successful!"
+                                      Displays: Payment ID, Order ID, Amount
 ```
 
-### 2. Invalid Login Flow
-```text
-[ User enters unregistered Email OR wrong Password ]
-                     │
-                     ▼
-             [ POST /login ]
-                     │
-         Credentials match in users.json?
-                     │  (NO)
-                     ▼
-     [ Reject Authentication ]
-                     │
-                     ├──► [ Dispatch "Login Failed" Security Alert Email ]
-                     │    Recipient: email (Address entered in login form)
-                     │    Subject: "Security Alert: Unsuccessful Login Attempt — Majestic Interior"
-                     │    Content: Target Email, Timestamp, Invalid Credentials notice
-                     │
-                     ▼
-     [ Flash Red Error Alert on Login Page ]
-     "Invalid email or password. An alert email has been sent to the entered address."
+### 2. Environment Variables Configuration
+To run live test transactions with your Razorpay sandbox account, update `.env`:
+
+```env
+# Razorpay Payment Gateway Configuration (Task 5 - TEST MODE ONLY)
+RAZORPAY_KEY_ID=your_test_key_id
+RAZORPAY_KEY_SECRET=your_test_secret_key
 ```
 
-### 3. SMTP Configuration via `.env`
-Email dispatch is powered by SMTP (Simple Mail Transfer Protocol) using environment variables loaded securely via `python-dotenv`:
-
-| Environment Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `SMTP_SERVER` | `smtp.gmail.com` | SMTP host server address |
-| `SMTP_PORT` | `587` | SMTP port (587 for TLS) |
-| `SMTP_USE_TLS` | `True` | Enables STARTTLS encryption |
-| `SMTP_USERNAME` | *(Your Gmail)* | Registered sender email address |
-| `SMTP_PASSWORD` | *(16-char App Password)* | Google 16-character App Password |
-| `SMTP_SENDER` | `Majestic Interior <...>` | Display name and sender address |
-
-> **Setting up Gmail SMTP App Password**:
-> 1. Visit your [Google Account Security](https://myaccount.google.com/security) settings.
-> 2. Ensure **2-Step Verification** is turned ON.
-> 3. Search for **App passwords** or visit [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
-> 4. Create an App password (e.g. name: `Majestic Flask PBL`) and copy the generated 16-character code into `.env`.
+> **Where to find Razorpay Test Keys**:
+> 1. Log in to your [Razorpay Dashboard](https://dashboard.razorpay.com/).
+> 2. Toggle to **Test Mode** at the top right of the dashboard.
+> 3. Go to **Account & Settings** -> **API Keys**.
+> 4. Generate a Test Key and copy the `Key ID` and `Key Secret` into `.env`.
 
 ---
 
@@ -171,8 +187,8 @@ Email dispatch is powered by SMTP (Simple Mail Transfer Protocol) using environm
 majestic-web/
 │
 ├── app.py                     # Main Flask application and route definitions
-├── requirements.txt           # Python dependencies (Flask>=3.0.0, python-dotenv>=1.0.0)
-├── .env.example               # Template for environment variables and SMTP setup
+├── requirements.txt           # Python dependencies (Flask, python-dotenv, razorpay)
+├── .env.example               # Template for environment variables (SMTP, Razorpay)
 ├── .gitignore                 # Excludes .env, virtual environments, and caches
 │
 ├── data/
@@ -186,13 +202,14 @@ majestic-web/
 │   ├── gallery.html           # Gallery page with Chocolat lightbox
 │   ├── pages.html             # Typography, buttons & table components
 │   ├── single.html            # Single post & comments page
-│   ├── login.html             # User login page (Task 2 & Task 4)
-│   └── register.html          # User registration page (Task 2 & 3)
+│   ├── login.html             # User login page (Task 2 & 4)
+│   ├── register.html          # User registration page (Task 2, 3 & 4)
+│   └── payment.html           # Razorpay Test Mode Payment Gateway page (Task 5)
 │
 ├── static/                    # Frontend static assets
 │   ├── css/
 │   │   ├── bootstrap.css      # Bootstrap framework styles
-│   │   ├── style.css          # Majestic primary stylesheet
+│   │   ├── style.css          # Majestic primary stylesheet (includes Task 5 styles)
 │   │   ├── chocolat.css       # Lightbox stylesheet
 │   │   ├── flexslider.css     # Banner slider stylesheet
 │   │   ├── style4.css         # Team hover animations
@@ -205,12 +222,11 @@ majestic-web/
 │   │   ├── jquery.chocolat.js
 │   │   └── modernizr.custom.79639.js
 │   ├── fonts/                 # Glyphicons icon fonts
-│   └── images/                # Furniture & layout images (54 assets)
+│   └── images/                # Furniture & layout images
 │
-├── scratch/
-│   └── test_task4.py          # Automated test suite for Task 4 login & email flows
-│
-└── web/                       # Original untouched static backup template
+└── scratch/                   # Automated unit test suites
+    ├── test_task4.py          # Task 4 authentication & email test suite
+    └── test_task5.py          # Task 5 Razorpay order, validation & signature test suite
 ```
 
 ---
@@ -218,6 +234,7 @@ majestic-web/
 ## ⚙️ Technologies Used
 
 - **Backend**: Python 3.13, Flask 3.1
+- **Payment Processing**: `razorpay 2.0+` (Python SDK), Razorpay Checkout.js (Test Mode)
 - **Email & Networking**: `smtplib`, `email.mime` (standard library), `python-dotenv 1.2+`
 - **Templating Engine**: Jinja2
 - **Data Persistence**: JSON (`data/users.json`)
@@ -234,8 +251,6 @@ majestic-web/
 - Git (optional, for cloning).
 
 ### 2. Setup Environment
-Open your terminal in the project directory:
-
 ```powershell
 # Create a local virtual environment
 python -m venv .venv
@@ -252,12 +267,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables (Optional for Live SMTP)
+### 3. Configure Environment Variables
 Copy `.env.example` to `.env`:
 ```powershell
 copy .env.example .env
 ```
-Open `.env` and set your Gmail address and 16-character App Password. If left unconfigured, the application gracefully operates in **simulation mode**, printing notifications to the console without interrupting user flow.
+Open `.env` and fill in:
+- `SMTP_USERNAME` & `SMTP_PASSWORD` (for Task 4 emails).
+- `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` (for Task 5 payment gateway).
 
 ### 4. Run Application
 ```powershell
@@ -282,86 +299,70 @@ http://127.0.0.1:5000/
 | `/gallery` | `GET` | `gallery()` | Portfolio gallery with interactive popup lightbox. |
 | `/pages` | `GET` | `pages()` | UI typography, heading styles, and button components. |
 | `/single` | `GET` | `single()` | Detailed blog post view with user discussion comments. |
-| `/register` | `GET`, `POST` | `register()` | User registration form, validation, JSON storage, and welcome email dispatch. |
-| `/login` | `GET`, `POST` | `login()` | User authentication, credential validation, login email dispatch, and redirect to Home. |
-| `/logout` | `GET` | `logout()` | Session destruction, logging user out, and redirect to Home. |
-
-
----
-
-## 🔄 Registration Data Flow (Task 3)
-
-```text
-[ User on /register ]
-        │
-        │ Submits Form (Name, Email, Phone, Password, Confirm Password)
-        ▼
-[ POST /register ]
-        │
-        ├── Validation Check:
-        │   ├── Are any fields empty? ───────────────► [ Flash Error ] ──┐
-        │   ├── Do passwords mismatch? ──────────────► [ Flash Error ] ──┼──► Return to /register
-        │   └── Does email already exist in JSON? ───► [ Flash Error ] ──┘
-        │
-        ├── All Valid:
-        │   ├── Load existing records from data/users.json
-        │   ├── Append new user dictionary
-        │   ├── Save updated list to data/users.json
-        │   ├── Flash success message
-        │   └── HTTP 302 Redirect to / (Home)
-        ▼
-[ GET / (Home) ]
-        │
-        ├── home() reads data/users.json
-        ├── Passes users list to index.html
-        └── Home page renders "REGISTERED USER DETAILS" client cards
-```
+| `/register` | `GET`, `POST` | `register()` | User registration, JSON storage, and welcome email dispatch. |
+| `/login` | `GET`, `POST` | `login()` | User authentication, email notification dispatch, and redirect to Home. |
+| `/logout` | `GET` | `logout()` | Session termination and redirect to Home. |
+| `/payment` | `GET`, `POST` | `payment()` | Payment page, amount validation, and Razorpay Test Order creation. |
+| `/payment/success` | `POST` | `payment_success()` | Cryptographic HMAC signature verification and payment receipt display. |
+| `/payment/failure` | `GET`, `POST` | `payment_failure()` | Payment cancellation and failure response handling. |
 
 ---
 
 ## 🔒 Security Considerations
 
-1. **Environment Secret Isolation**: All SMTP passwords, sender emails, and Flask secret keys are stored strictly in `.env`. No secrets are hardcoded in source code.
-2. **Git Exclusion**: `.env` is registered in `.gitignore` to prevent credential leakage to remote repositories.
-3. **Password Masking**: Password fields use `<input type="password">` to prevent on-screen shoulder surfing.
-4. **Credential Privacy**: Passwords stored in `users.json` are **never** rendered in frontend templates or exposed on the Home page.
-5. **Secure Email Transport**: SMTP connections use STARTTLS on port 587, encrypting email communications over the network.
-6. **Account Takeover Protection**: Immediate security alert emails on failed login attempts notify users if unauthorized parties attempt to guess their credentials.
-7. **Graceful Fault Tolerance**: SMTP errors (network timeouts, bad credentials) are caught and logged without causing HTTP 500 crashes on the website.
+1. **API Key & Secret Isolation**:
+   - `RAZORPAY_KEY_ID` is safely exposed to frontend checkout.
+   - `RAZORPAY_KEY_SECRET` is kept **strictly server-side** on Flask and never passed to HTML or JS templates.
+2. **Environment Variable Storage**: All secrets (`SECRET_KEY`, SMTP passwords, Razorpay secrets) are isolated in `.env` and excluded via `.gitignore`.
+3. **Cryptographic Signature Verification**:
+   - Payment success is **never** trusted from frontend callbacks alone.
+   - The backend computes and verifies `HMAC-SHA256(order_id + "|" + payment_id, key_secret)` using `client.utility.verify_payment_signature` before granting success status.
+4. **Server-Side Amount Validation**:
+   - The backend validates amount types and values, rejecting empty, zero, negative, or below ₹1.00 inputs.
+5. **Sandbox Isolation**:
+   - The system connects exclusively to Razorpay Sandbox/Test Mode. No real credit cards or bank accounts are touched.
 
 ---
 
 ## 🧪 Testing
 
 ### Automated Test Suite Execution
-Run the unit test suite verifying both valid and invalid login email notifications as well as Task 1–3 non-breaking regression:
+Run the unit test suites:
 ```powershell
+# Run Task 5 Razorpay test suite (11 tests)
+python scratch/test_task5.py
+
+# Run Task 4 Email notification test suite (4 tests)
 python scratch/test_task4.py
 ```
 
-### Manual Testing Guide
+### Manual Testing Guide for Task 5
 
-#### Case 1: Valid Login (Success Email Flow)
-1. Open `http://127.0.0.1:5000/login`.
-2. Enter valid credentials (e.g., registered user in `data/users.json`):
-   - **Email**: `piyush@example.com`
-   - **Password**: `Test123`
-3. Click **LOGIN**.
-4. **Verification**:
-   - Website displays green success banner: *"Login successful! Welcome back, Piyush Test. A login confirmation email has been sent to piyush@example.com."*
-   - If SMTP is configured in `.env`, a confirmation email is delivered to the inbox.
-   - If `.env` is unconfigured, terminal outputs `[SMTP Simulation] Email simulated for 'piyush@example.com' | Subject: 'Majestic Interior — Login Successful'`.
+1. **Open Payment Page**:
+   Navigate to: `http://127.0.0.1:5000/payment`
+   - Confirm page loads with Majestic styling, "TEST MODE DEMO" banner, and quick amount chips.
 
-#### Case 2: Invalid Login (Security Alert Email Flow)
-1. Open `http://127.0.0.1:5000/login`.
-2. Enter incorrect credentials:
-   - **Email**: `piyush@example.com`
-   - **Password**: `WrongPassword123`
-3. Click **LOGIN**.
-4. **Verification**:
-   - Website displays red error banner: *"Invalid email or password. An alert email has been sent to the entered address."*
-   - If SMTP is configured in `.env`, an alert email is delivered to `piyush@example.com` with subject *"Security Alert: Unsuccessful Login Attempt — Majestic Interior"*.
-   - If `.env` is unconfigured, terminal outputs `[SMTP Simulation] Email simulated for 'piyush@example.com' | Subject: 'Security Alert: Unsuccessful Login Attempt — Majestic Interior'`.
+2. **Test Validation Cases**:
+   - **Empty Amount**: Leave input blank and submit. Verify: *"Please enter a payment amount."* appears.
+   - **Zero Amount**: Enter `0` and submit. Verify: *"Payment amount must be greater than zero."* appears.
+   - **Negative Amount**: Enter `-50` and submit. Verify: *"Payment amount must be greater than zero."* appears.
+   - **Non-numeric Amount**: Enter `abc` and submit. Verify: *"Amount must be a valid numeric value."* appears.
+
+3. **Test Successful Payment**:
+   - Configure active Razorpay Test Keys in `.env`.
+   - Enter `₹500` and click **PROCEED TO PAY NOW**.
+   - Razorpay Checkout modal appears.
+   - Select **Cards** and enter Razorpay official test card:
+     - Card Number: `4000 0000 0000 0002` (or select NetBanking/UPI simulation).
+     - Expiry: Any future date (e.g. `12/28`).
+     - CVV: `123`.
+   - Click **Pay** and approve the OTP simulation.
+   - Page renders **Payment Successful!** with Payment ID, Order ID, Amount, and Verified Signature badge.
+
+4. **Test Payment Cancellation**:
+   - Enter `₹100` and click **PROCEED TO PAY NOW**.
+   - In the Razorpay modal, click the **×** (Close) button or choose Cancel.
+   - Page redirects to **Payment Failed / Cancelled** with order details and a "Try Again" button.
 
 ---
 
@@ -369,23 +370,17 @@ python scratch/test_task4.py
 
 When asked during your evaluation:
 
-- **Q1: Why did we convert a static template into Flask?**
-  > *"Static templates only serve fixed HTML files. Flask allows us to dynamically render pages, manage URL routing centrally, handle form submissions via POST requests, validate user inputs, and persist data across requests."*
+- **Q1: Why is an order created on the backend instead of directly in frontend JS?**
+  > *"Creating the order on the backend prevents client-side price tampering. If the order was created in JavaScript, a malicious user could inspect the browser console, modify the amount to ₹1, and purchase a ₹50,000 furniture piece. The backend order binds the amount and currency securely before checkout begins."*
 
-- **Q2: What is the Post-Redirect-Get (PRG) pattern in Task 3?**
-  > *"After processing a successful POST request in `/register`, we issue an HTTP redirect (`return redirect(url_for('home'))`). This prevents accidental duplicate form submissions if the user refreshes their browser."*
+- **Q2: Why do we convert the amount to paise?**
+  > *"Razorpay (and most payment gateways) handles amounts in the smallest currency unit to avoid floating-point rounding errors. For INR, ₹1 = 100 paise. So ₹500.50 becomes 50050 paise as an integer."*
 
-- **Q3: How is registration data stored?**
-  > *"For Task 3, we use a structured JSON file (`data/users.json`). Python's native `json` module reads and writes client dictionaries, making the data human-readable, self-contained, and simple to demonstrate without requiring an external database server."*
+- **Q3: What is Razorpay payment signature verification?**
+  > *"When Razorpay processes a payment, it returns `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature`. The signature is an HMAC-SHA256 hash created using our private `RAZORPAY_KEY_SECRET`. On the Flask backend, `client.utility.verify_payment_signature()` recalculates the hash. If the hashes match, we know the payment genuinely came from Razorpay and was not forged."*
 
-- **Q4: How does the SMTP email notification system in Task 4 work?**
-  > *"We use Python's built-in `smtplib` library together with `email.mime`. When a user submits the login form, the backend checks credentials against `data/users.json`. If valid, it dispatches a 'Login Successful' notification to the registered user. If invalid, it dispatches a 'Security Alert' to the entered email address so the account owner is notified of potential unauthorized attempts."*
+- **Q4: Why must `RAZORPAY_KEY_SECRET` never be sent to the frontend?**
+  > *"The Key ID acts as a public identifier for the checkout window, but the Key Secret has full administrative power to verify signatures, issue refunds, and access transactions. If exposed to the frontend, anyone could forge successful payment signatures."*
 
-- **Q5: Why do we use environment variables (`.env`) for SMTP?**
-  > *"Hardcoding email addresses and passwords into source code is a major security vulnerability. By storing credentials in a `.env` file that is excluded via `.gitignore`, sensitive credentials are never leaked to public version control."*
-
-- **Q6: Why is STARTTLS on port 587 preferred for email sending?**
-  > *"Port 587 with STARTTLS starts with a plaintext handshake and immediately upgrades the connection to encrypted TLS before any sensitive credentials (such as App Passwords) or email contents are transmitted."*
-
-- **Q7: What happens if the SMTP server fails or credentials are wrong?**
-  > *"All SMTP communication is wrapped inside a `try...except` block with logging. If credentials are missing, simulation mode logs the attempt to terminal. If connection fails, a warning is logged without raising an unhandled HTTP 500 error, guaranteeing that website visitors receive appropriate feedback."*
+- **Q5: How does the application handle payment failures and cancellations?**
+  > *"Razorpay Checkout's `modal.ondismiss` and `payment.failed` event listeners intercept user cancellations or banking declines and redirect to `/payment/failure`, displaying user-friendly feedback without crashing the application."*

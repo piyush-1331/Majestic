@@ -4,7 +4,9 @@ import smtplib
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import razorpay
 from dotenv import load_dotenv
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 
 # Load environment variables from .env file
@@ -456,6 +458,164 @@ def logout():
     flash("You have been logged out successfully.", "success")
     return redirect(url_for("home"))
 
+# ==============================================================================
+# Task 5: Razorpay Payment Gateway Demonstration (Test Mode Only)
+# ==============================================================================
+
+def get_razorpay_client():
+    """
+    Retrieve and initialize the Razorpay Client dynamically using test keys from .env.
+    Returns (client, key_id, key_secret).
+    """
+    load_dotenv(override=False)
+    key_id = (os.getenv("RAZORPAY_KEY_ID") or "").strip()
+    key_secret = (os.getenv("RAZORPAY_KEY_SECRET") or "").strip()
+
+    if not key_id or not key_secret or key_id == "your_test_key_id":
+        return None, key_id, key_secret
+
+    try:
+        client = razorpay.Client(auth=(key_id, key_secret))
+        client.set_app_details({"title": "Majestic Interior PBL", "version": "1.0"})
+        return client, key_id, key_secret
+    except Exception as e:
+        print(f"[Razorpay Init Error] {e}")
+        return None, key_id, key_secret
+
+
+@app.route("/payment.html", methods=["GET", "POST"])
+@app.route("/payment", methods=["GET", "POST"])
+def payment():
+    if request.method == "POST":
+        amount_raw = request.form.get("amount", "").strip()
+        customer_name = request.form.get("name", "").strip()
+        customer_email = request.form.get("email", "").strip()
+
+        # Server-side amount validation
+        if not amount_raw:
+            flash("Please enter a payment amount.", "error")
+            return render_template("payment.html", amount=amount_raw)
+
+        try:
+            amount_val = float(amount_raw)
+        except ValueError:
+            flash("Amount must be a valid numeric value.", "error")
+            return render_template("payment.html", amount=amount_raw)
+
+        if amount_val <= 0:
+            flash("Payment amount must be greater than zero.", "error")
+            return render_template("payment.html", amount=amount_raw)
+
+        # Convert to smallest currency unit (paise)
+        amount_in_paise = int(round(amount_val * 100))
+        if amount_in_paise < 100:
+            flash("Minimum transaction amount is ₹1.00 (100 paise).", "error")
+            return render_template("payment.html", amount=amount_raw)
+
+        client, key_id, key_secret = get_razorpay_client()
+        if not client:
+            flash(
+                "Razorpay Test Mode keys are not configured in .env. "
+                "Please configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to initiate live sandbox orders.",
+                "error"
+            )
+            return render_template("payment.html", amount=amount_raw)
+
+        try:
+            # Server-side Razorpay Test Order Creation
+            order_data = {
+                "amount": amount_in_paise,
+                "currency": "INR",
+                "receipt": f"rcpt_majestic_{int(datetime.now().timestamp())}",
+                "payment_capture": 1
+            }
+            razorpay_order = client.order.create(data=order_data)
+            order_id = razorpay_order["id"]
+
+            return render_template(
+                "payment.html",
+                checkout_ready=True,
+                order_id=order_id,
+                key_id=key_id,
+                amount=f"{amount_val:.2f}",
+                amount_in_paise=amount_in_paise,
+                currency="INR",
+                customer_name=customer_name or session.get("user", {}).get("name", "Valued Customer"),
+                customer_email=customer_email or session.get("user", {}).get("email", "customer@example.com")
+            )
+        except Exception as e:
+            flash(f"Razorpay order creation failed: {str(e)}", "error")
+            return render_template("payment.html", amount=amount_raw)
+
+    return render_template("payment.html")
+
+
+@app.route("/payment/success", methods=["GET", "POST"])
+def payment_success():
+    if request.method == "POST":
+        payment_id = request.form.get("razorpay_payment_id", "").strip()
+        order_id = request.form.get("razorpay_order_id", "").strip()
+        signature = request.form.get("razorpay_signature", "").strip()
+        amount = request.form.get("amount", "0.00").strip()
+
+        if not payment_id or not order_id or not signature:
+            flash("Incomplete payment response received from checkout.", "error")
+            return redirect(url_for("payment"))
+
+        client, key_id, key_secret = get_razorpay_client()
+        if not client:
+            flash("Payment verification failed: Razorpay client is not configured.", "error")
+            return redirect(url_for("payment"))
+
+        try:
+            # Server-side cryptographic signature verification using Razorpay SDK
+            params_dict = {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": signature
+            }
+            client.utility.verify_payment_signature(params_dict)
+
+            return render_template(
+                "payment.html",
+                payment_status="success",
+                payment_id=payment_id,
+                order_id=order_id,
+                amount=amount,
+                currency="INR",
+                timestamp=datetime.now().strftime("%B %d, %Y at %I:%M %p")
+            )
+        except razorpay.errors.SignatureVerificationError:
+            return render_template(
+                "payment.html",
+                payment_status="failed",
+                error_message="Signature verification failed. The payment response could not be verified by the backend.",
+                order_id=order_id
+            )
+        except Exception as e:
+            return render_template(
+                "payment.html",
+                payment_status="failed",
+                error_message=f"Verification error: {str(e)}",
+                order_id=order_id
+            )
+
+    return redirect(url_for("payment"))
+
+
+@app.route("/payment/failure", methods=["GET", "POST"])
+def payment_failure():
+    reason = request.values.get("reason", "Payment was cancelled or dismissed by user.")
+    order_id = request.values.get("order_id", "")
+    return render_template(
+        "payment.html",
+        payment_status="failed",
+        error_message=reason,
+        order_id=order_id
+    )
+
+
 if __name__ == "__main__":
     app.run(debug=True)
+
 
