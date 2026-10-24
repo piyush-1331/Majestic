@@ -56,7 +56,7 @@ def get_resend_config():
     Retrieve Resend API configuration dynamically from environment variables (.env / Render).
     Resend operates purely over HTTPS (REST API), avoiding cloud port restrictions on Render.
     """
-    load_dotenv(override=False)
+    load_dotenv(override=True)
     api_key = (os.getenv("RESEND_API_KEY") or "").strip().strip('"').strip("'")
     raw_from = (os.getenv("RESEND_FROM_EMAIL") or "onboarding@resend.dev").strip().strip('"').strip("'")
 
