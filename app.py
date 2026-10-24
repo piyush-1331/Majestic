@@ -2,6 +2,7 @@ import os
 import json
 import smtplib
 from datetime import datetime
+import email.utils
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import razorpay
@@ -41,78 +42,121 @@ def save_users(users):
 # ==============================================================================
 
 def get_smtp_config():
-    """Retrieve SMTP configuration dynamically from environment variables (.env)."""
+    """
+    Retrieve SMTP configuration dynamically from environment variables (.env / Render).
+    Prioritizes SMTP_* variables configured in Render with fallback to MAIL_*.
+    """
     load_dotenv(override=False)
-    server = (os.getenv("SMTP_SERVER") or os.getenv("MAIL_SERVER") or "smtp.gmail.com").strip()
-    port_str = os.getenv("SMTP_PORT") or os.getenv("MAIL_PORT") or "587"
+
+    server = (os.getenv("SMTP_SERVER") or os.getenv("MAIL_SERVER") or "smtp.gmail.com").strip().strip('"').strip("'")
+
+    raw_port = os.getenv("SMTP_PORT") or os.getenv("MAIL_PORT") or "587"
     try:
-        port = int(port_str.strip())
-    except ValueError:
+        port = int(str(raw_port).strip().strip('"').strip("'"))
+    except (ValueError, TypeError):
         port = 587
-    use_tls_str = os.getenv("SMTP_USE_TLS") or os.getenv("MAIL_USE_TLS") or "True"
-    use_tls = use_tls_str.strip().lower() in ("true", "1", "yes")
-    username = (os.getenv("MAIL_USERNAME") or os.getenv("SMTP_USERNAME") or "").strip()
-    raw_password = os.getenv("MAIL_PASSWORD") or os.getenv("SMTP_PASSWORD") or ""
-    # Strip spaces in case Google 16-character App Password was copied with spaces (e.g. 'abcd efgh ijkl mnop')
-    password = raw_password.replace(" ", "").strip()
-    sender = os.getenv("MAIL_SENDER") or os.getenv("SMTP_SENDER") or (
-        f"Majestic Interior & Furniture <{username}>" if username else "noreply@majesticinterior.com"
-    )
+
+    raw_tls = os.getenv("SMTP_USE_TLS") or os.getenv("MAIL_USE_TLS")
+    if raw_tls is None or raw_tls == "":
+        use_tls = True  # Default enabled for Gmail port 587
+    else:
+        use_tls = str(raw_tls).strip().strip('"').strip("'").lower() in ("true", "1", "yes", "enabled", "t")
+
+    username = (os.getenv("SMTP_USERNAME") or os.getenv("MAIL_USERNAME") or "").strip().strip('"').strip("'")
+    raw_password = os.getenv("SMTP_PASSWORD") or os.getenv("MAIL_PASSWORD") or ""
+    # Strip enclosing quotes and internal spaces (in case Google 16-char App Password was pasted with spaces)
+    password = str(raw_password).strip().strip('"').strip("'").replace(" ", "")
+
+    raw_sender = (os.getenv("SMTP_SENDER") or os.getenv("MAIL_SENDER") or "").strip().strip('"').strip("'")
+    if raw_sender:
+        sender = raw_sender
+    elif username:
+        sender = f"Majestic Interior & Furniture <{username}>"
+    else:
+        sender = "Majestic Interior & Furniture <noreply@majesticinterior.com>"
+
+    is_configured = bool(username and password)
+    print(f"SMTP configuration loaded: {is_configured}", flush=True)
+
     return {
         "server": server,
         "port": port,
         "use_tls": use_tls,
         "username": username,
         "password": password,
-        "sender": sender
+        "sender": sender,
+        "is_configured": is_configured
     }
 
 def send_email_notification(recipient_email, subject, text_body, html_body=None):
     """
-    Sends an email notification via SMTP using configuration from environment variables (.env).
-    Gracefully handles missing configuration or connection errors.
+    Sends an email notification via SMTP using configuration from environment variables (.env / Render).
+    Handles Gmail SMTP authentication, STARTTLS, RFC headers, and safe error logging without leaking secrets.
     Returns (success: bool, info: str).
     """
     config = get_smtp_config()
 
-    # If credentials are not configured or set to placeholder, log a simulation message
-    if not config["username"] or not config["password"] or config["username"] == "your_email@gmail.com":
-        simulated_info = (
-            f"[SMTP Simulation] No active credentials in .env. "
-            f"Email simulated for '{recipient_email}' | Subject: '{subject}'"
-        )
-        print(simulated_info)
-        return True, simulated_info
+    if not config["is_configured"]:
+        error_msg = "SMTP configuration loaded: False (Missing SMTP_USERNAME or SMTP_PASSWORD in environment)"
+        print(f"Email sending failed: {error_msg}", flush=True)
+        return False, error_msg
+
+    if not recipient_email or "@" not in str(recipient_email):
+        error_msg = f"Invalid recipient email address: '{recipient_email}'"
+        print(f"Email sending failed: {error_msg}", flush=True)
+        return False, error_msg
 
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = config["sender"]
         msg["To"] = recipient_email
+        msg["Date"] = email.utils.formatdate(localtime=True)
+        msg["Message-ID"] = email.utils.make_msgid(domain=config["server"])
 
-        # Attach plain-text fallback
+        # Attach plain-text fallback first
         msg.attach(MIMEText(text_body, "plain", "utf-8"))
 
         # Attach HTML version if provided
         if html_body:
             msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-        with smtplib.SMTP(config["server"], config["port"], timeout=10) as server:
-            if config["use_tls"]:
-                server.starttls()
-            server.login(config["username"], config["password"])
-            server.send_message(msg)
+        # Connect via SSL if port 465, otherwise standard SMTP with STARTTLS
+        if config["port"] == 465:
+            with smtplib.SMTP_SSL(config["server"], config["port"], timeout=15) as server:
+                server.ehlo()
+                server.login(config["username"], config["password"])
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(config["server"], config["port"], timeout=15) as server:
+                server.ehlo()
+                if config["use_tls"]:
+                    server.starttls()
+                    server.ehlo()
+                server.login(config["username"], config["password"])
+                server.send_message(msg)
 
-        success_info = f"[SMTP Success] Email delivered to {recipient_email} ('{subject}')"
-        print(success_info)
-        return True, success_info
+        print("Email sent successfully", flush=True)
+        return True, "Email sent successfully"
+
+    except smtplib.SMTPAuthenticationError as e:
+        safe_err = f"SMTP Authentication failed (Check SMTP_USERNAME and Google App Password). Server response: {e.smtp_error if hasattr(e, 'smtp_error') else e}"
+        print(f"Email sending failed: {safe_err}", flush=True)
+        return False, safe_err
+    except smtplib.SMTPConnectError as e:
+        safe_err = f"SMTP Connection failed to {config['server']}:{config['port']}. {e}"
+        print(f"Email sending failed: {safe_err}", flush=True)
+        return False, safe_err
     except Exception as e:
-        error_info = f"[SMTP Warning] Delivery to {recipient_email} failed: {e}"
-        print(error_info)
-        return False, error_info
+        safe_err = str(e)
+        if config["password"] and len(config["password"]) >= 4:
+            safe_err = safe_err.replace(config["password"], "********")
+        print(f"Email sending failed: {safe_err}", flush=True)
+        return False, safe_err
 
 def send_login_success_email(user_email, user_name):
     """Sends a 'Login Successful' notification to the registered user."""
+    print("Attempting to send login notification", flush=True)
     timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
     subject = "Majestic Interior — Login Successful"
 
@@ -173,6 +217,7 @@ Majestic Interior & Furniture Team
 
 def send_login_failed_email(entered_email):
     """Sends a 'Login Failed' security alert to the entered email address."""
+    print("Attempting to send login notification", flush=True)
     timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
     subject = "Security Alert: Unsuccessful Login Attempt — Majestic Interior"
 
