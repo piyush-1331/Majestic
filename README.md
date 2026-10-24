@@ -11,7 +11,7 @@ A full-featured interior design and furniture e-commerce website built by integr
 | **Task 1** | **Website Integration Using Flask** | Converting static HTML/CSS/JS template into a structured Flask web app with dynamic routing. | ✅ **Completed** |
 | **Task 2** | **User Login & Registration Pages** | Designing separate Login and Registration pages styled after `contact.html` with server-side validation. | ✅ **Completed** |
 | **Task 3** | **Registration Processing & Home Display** | Processing registration POST data, storing in JSON, and rendering registered user cards on Home. | ✅ **Completed** |
-| **Task 4** | **Email Notifications** | Automated login confirmation, security alerts & registration emails via SMTP with `.env` configuration. | ✅ **Completed** |
+| **Task 4** | **Email Notifications (Resend API)** | Automated login confirmations, security alerts & notifications via Resend API (HTTPS) with `.env` / Render config. | ✅ **Completed** |
 | **Task 5** | **Payment Gateway Integration** | Demonstrating secure Razorpay Test Mode checkout, backend order creation, and server-side signature verification. | ✅ **Completed** |
 
 ---
@@ -76,10 +76,18 @@ The transition from a static website to an integrated Flask application was perf
 3. **Post-Redirect-Get (PRG) Pattern**: Upon valid registration, user data is saved to `data/users.json`, a success message is flashed, and the client is redirected to `/` via `redirect(url_for('home'))`.
 4. **Home Page Rendering**: Updated `home()` to read `data/users.json` and pass `users` to `index.html`. Added a responsive "REGISTERED USER DETAILS" card section.
 
-### Phase 4: Task 4 — Email Notification System (Login & Register Authentication)
-1. **Environment Configuration**: Created `.env.example` defining standard SMTP configuration keys. Added `.env` to `.gitignore`.
-2. **Email Engine**: Created `send_email_notification()`, `send_login_success_email()`, `send_login_failed_email()`, and `send_registration_success_email()`.
-3. **Session & Navbar Enhancements**:
+### Phase 4: Task 4 — Email Notification System (Resend API over HTTPS for Render)
+1. **Migration from Gmail SMTP to Resend API**:
+   - On cloud hosting platforms such as Render, standard outbound SMTP ports (25, 465, and 587) are network-restricted, yielding `[Errno 101] Network is unreachable` in server logs.
+   - Migrated email dispatch to the official **Resend Python SDK (`resend`)** which operates entirely over secure **HTTPS (port 443)**, ensuring 100% cloud reliability.
+2. **Environment Configuration**:
+   - Added `RESEND_API_KEY` and `RESEND_FROM_EMAIL` (defaulting to `onboarding@resend.dev` or a verified custom domain) in `.env` and `.env.example`.
+   - Maintained `SECRET_KEY`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` without modification.
+3. **Email Dispatch Engine**:
+   - `send_login_success_email()`: Dispatches a branded HTML/plain-text confirmation email with user name, registered account, timestamp, and authentication status.
+   - `send_login_failed_email()`: Dispatches an immediate security alert to the entered address warning of an unsuccessful login attempt.
+   - Safe error handling: logs `Email sending failed: <safe error>` without exposing API keys, secrets, or passwords, and without interrupting the user login/session experience.
+4. **Session & Navbar Enhancements**:
    - Successful login sets `session["user"]` and redirects to Home.
    - When logged in, "Login" and "Register" buttons disappear and are replaced by the user greeting and a **Logout** button.
    - Themed custom flash messages to match `#2a2017` header styling with 4.5s auto-fadeout.
@@ -233,9 +241,10 @@ majestic-web/
 
 ## ⚙️ Technologies Used
 
-- **Backend**: Python 3.13, Flask 3.1
-- **Payment Processing**: `razorpay 2.0+` (Python SDK), Razorpay Checkout.js (Test Mode)
-- **Email & Networking**: `smtplib`, `email.mime` (standard library), `python-dotenv 1.2+`
+- **Backend**: Python 3.13, Flask 3.1, Gunicorn 21.2+
+- **Email Delivery (Task 4)**: `resend 2.50+` (Official Resend Python SDK over HTTPS)
+- **Payment Processing (Task 5)**: `razorpay 2.0+` (Python SDK), Razorpay Checkout.js (Test Mode)
+- **Configuration & Secrets**: `python-dotenv 1.2+`
 - **Templating Engine**: Jinja2
 - **Data Persistence**: JSON (`data/users.json`)
 - **Frontend Core**: HTML5, CSS3, JavaScript (ES5/ES6)
@@ -244,7 +253,7 @@ majestic-web/
 
 ---
 
-## 🚀 Installation & Run Steps
+## 🚀 Installation & Local Run Steps
 
 ### 1. Prerequisites
 - Python 3.10+ installed on your machine.
@@ -273,13 +282,41 @@ Copy `.env.example` to `.env`:
 copy .env.example .env
 ```
 Open `.env` and fill in:
-- `SMTP_USERNAME` & `SMTP_PASSWORD` (for Task 4 emails).
+- `RESEND_API_KEY` & `RESEND_FROM_EMAIL` (for Task 4 emails over HTTPS).
 - `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` (for Task 5 payment gateway).
 
 ### 4. Run Application
 ```powershell
 python app.py
 ```
+
+Open your browser and navigate to:
+```text
+http://127.0.0.1:5000/
+```
+
+---
+
+## ☁️ Render Cloud Deployment Guide
+
+When deploying this project as a Web Service on **Render**:
+
+1. **Build Command**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Start Command**:
+   ```bash
+   gunicorn app:app
+   ```
+
+3. **Render Environment Variables** (configured in the Render Dashboard -> *Environment* tab):
+   - `SECRET_KEY`: `majestic_interior_furniture_pbl_secret_key`
+   - `RESEND_API_KEY`: `re_your_resend_api_key`
+   - `RESEND_FROM_EMAIL`: `onboarding@resend.dev` (or your verified domain address)
+   - `RAZORPAY_KEY_ID`: `rzp_test_...`
+   - `RAZORPAY_KEY_SECRET`: `your_razorpay_secret`
 
 Open your browser and navigate to:
 ```text

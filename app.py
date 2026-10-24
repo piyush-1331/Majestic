@@ -6,6 +6,7 @@ import email.utils
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import razorpay
+import resend
 from dotenv import load_dotenv
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -38,13 +39,85 @@ def save_users(users):
         json.dump(users, f, indent=4)
 
 # ==============================================================================
-# Task 4: SMTP Email Notification System
+# Task 4: Email Notification System (Resend API over HTTPS for Render)
 # ==============================================================================
+
+def sanitize_safe_error(err_str):
+    """Mask any sensitive credentials from error outputs before logging."""
+    safe_err = str(err_str) if err_str else "Unknown error"
+    for secret_var in ["RESEND_API_KEY", "RAZORPAY_KEY_SECRET", "SMTP_PASSWORD", "SECRET_KEY"]:
+        val = os.getenv(secret_var, "")
+        if val and len(val) >= 4 and val in safe_err:
+            safe_err = safe_err.replace(val, "********")
+    return safe_err
+
+def get_resend_config():
+    """
+    Retrieve Resend API configuration dynamically from environment variables (.env / Render).
+    Resend operates purely over HTTPS (REST API), avoiding cloud port restrictions on Render.
+    """
+    load_dotenv(override=False)
+    api_key = (os.getenv("RESEND_API_KEY") or "").strip().strip('"').strip("'")
+    raw_from = (os.getenv("RESEND_FROM_EMAIL") or "onboarding@resend.dev").strip().strip('"').strip("'")
+
+    if not raw_from:
+        raw_from = "onboarding@resend.dev"
+
+    if "<" in raw_from and ">" in raw_from:
+        sender = raw_from
+    else:
+        sender = f"Majestic Interior & Furniture <{raw_from}>"
+
+    is_configured = bool(api_key and api_key != "your_resend_api_key")
+    return {
+        "api_key": api_key,
+        "sender": sender,
+        "from_email": raw_from,
+        "is_configured": is_configured
+    }
+
+def send_email_via_resend(recipient_email, subject, text_body, html_body=None):
+    """
+    Sends an email notification via the official Resend Python SDK over HTTPS (port 443).
+    Ensures safe error logging without credential leakage.
+    Returns (success: bool, info: str).
+    """
+    config = get_resend_config()
+
+    if not config["is_configured"]:
+        error_msg = "RESEND_API_KEY is not configured in environment variables."
+        print(f"Email sending failed: {error_msg}", flush=True)
+        return False, error_msg
+
+    if not recipient_email or "@" not in str(recipient_email):
+        error_msg = f"Invalid recipient email address: '{recipient_email}'"
+        print(f"Email sending failed: {error_msg}", flush=True)
+        return False, error_msg
+
+    try:
+        resend.api_key = config["api_key"]
+        params = {
+            "from": config["sender"],
+            "to": [recipient_email],
+            "subject": subject,
+            "text": text_body,
+        }
+        if html_body:
+            params["html"] = html_body
+
+        resend.Emails.send(params)
+        print("Email sent successfully", flush=True)
+        return True, "Email sent successfully"
+
+    except Exception as e:
+        safe_err = sanitize_safe_error(e)
+        print(f"Email sending failed: {safe_err}", flush=True)
+        return False, safe_err
 
 def get_smtp_config():
     """
-    Retrieve SMTP configuration dynamically from environment variables (.env / Render).
-    Prioritizes SMTP_* variables configured in Render with fallback to MAIL_*.
+    Retrieve legacy SMTP configuration dynamically from environment variables (.env / Render).
+    Kept for backward compatibility.
     """
     load_dotenv(override=False)
 
@@ -76,8 +149,6 @@ def get_smtp_config():
         sender = "Majestic Interior & Furniture <noreply@majesticinterior.com>"
 
     is_configured = bool(username and password)
-    print(f"SMTP configuration loaded: {is_configured}", flush=True)
-
     return {
         "server": server,
         "port": port,
@@ -88,11 +159,9 @@ def get_smtp_config():
         "is_configured": is_configured
     }
 
-def send_email_notification(recipient_email, subject, text_body, html_body=None):
+def send_email_via_smtp(recipient_email, subject, text_body, html_body=None):
     """
-    Sends an email notification via SMTP using configuration from environment variables (.env / Render).
-    Handles Gmail SMTP authentication, STARTTLS, RFC headers, and safe error logging without leaking secrets.
-    Returns (success: bool, info: str).
+    Legacy SMTP fallback email sender. Kept for local development and non-Render environments.
     """
     config = get_smtp_config()
 
@@ -148,14 +217,23 @@ def send_email_notification(recipient_email, subject, text_body, html_body=None)
         print(f"Email sending failed: {safe_err}", flush=True)
         return False, safe_err
     except Exception as e:
-        safe_err = str(e)
-        if config["password"] and len(config["password"]) >= 4:
-            safe_err = safe_err.replace(config["password"], "********")
+        safe_err = sanitize_safe_error(e)
         print(f"Email sending failed: {safe_err}", flush=True)
         return False, safe_err
 
+def send_email_notification(recipient_email, subject, text_body, html_body=None):
+    """
+    Universal email dispatcher.
+    Prefers Resend API (HTTPS) if RESEND_API_KEY is configured.
+    Otherwise falls back to SMTP for backward compatibility.
+    """
+    resend_cfg = get_resend_config()
+    if resend_cfg["is_configured"]:
+        return send_email_via_resend(recipient_email, subject, text_body, html_body)
+    return send_email_via_smtp(recipient_email, subject, text_body, html_body)
+
 def send_login_success_email(user_email, user_name):
-    """Sends a 'Login Successful' notification to the registered user."""
+    """Sends a 'Login Successful' notification to the registered user via Resend."""
     print("Attempting to send login notification", flush=True)
     timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
     subject = "Majestic Interior — Login Successful"
@@ -213,10 +291,10 @@ Majestic Interior & Furniture Team
 </body>
 </html>
 """
-    return send_email_notification(user_email, subject, text_body, html_body)
+    return send_email_via_resend(user_email, subject, text_body, html_body)
 
 def send_login_failed_email(entered_email):
-    """Sends a 'Login Failed' security alert to the entered email address."""
+    """Sends a 'Login Failed' security alert to the entered email address via Resend."""
     print("Attempting to send login notification", flush=True)
     timestamp = datetime.now().strftime("%B %d, %Y at %I:%M %p")
     subject = "Security Alert: Unsuccessful Login Attempt — Majestic Interior"
@@ -274,7 +352,7 @@ Majestic Interior & Furniture Security Team
 </body>
 </html>
 """
-    return send_email_notification(entered_email, subject, text_body, html_body)
+    return send_email_via_resend(entered_email, subject, text_body, html_body)
 
 def send_registration_success_email(user_email, user_name):
     """Sends a 'Registration Successful' welcome email to the newly registered user."""
@@ -664,7 +742,10 @@ def login():
                 # 4. Redirect to home page
                 user_email = user.get("email", email)
                 user_name = user.get("name", "User")
-                send_login_success_email(user_email, user_name)
+                try:
+                    send_login_success_email(user_email, user_name)
+                except Exception as e:
+                    print(f"Email sending failed: {sanitize_safe_error(e)}", flush=True)
                 session["user"] = {
                     "name": user_name,
                     "email": user_email
@@ -678,7 +759,10 @@ def login():
                 # Invalid Credentials Flow (wrong password or unregistered email):
                 # 1. Send "Login Failed" email to the entered email address
                 # 2. Show error message on the Login page
-                send_login_failed_email(email)
+                try:
+                    send_login_failed_email(email)
+                except Exception as e:
+                    print(f"Email sending failed: {sanitize_safe_error(e)}", flush=True)
                 flash("Invalid email or password. A security alert email has been sent to the entered address.", "error")
                 next_url = request.values.get("next", "").strip()
                 return render_template("login.html", email=email, next_url=next_url)
