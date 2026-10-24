@@ -138,10 +138,9 @@ def send_email_via_resend(recipient_email, subject, text_body, html_body=None, a
 
 def get_smtp_config():
     """
-    Retrieve legacy SMTP configuration dynamically from environment variables (.env / Render).
-    Kept for backward compatibility.
+    Retrieve SMTP configuration dynamically from environment variables (.env / Render).
     """
-    load_dotenv(override=False)
+    load_dotenv(override=True)
 
     server = (os.getenv("SMTP_SERVER") or os.getenv("MAIL_SERVER") or "smtp.gmail.com").strip().strip('"').strip("'")
 
@@ -183,7 +182,8 @@ def get_smtp_config():
 
 def send_email_via_smtp(recipient_email, subject, text_body, html_body=None):
     """
-    Legacy SMTP fallback email sender. Kept for local development and non-Render environments.
+    Direct Gmail SMTP email sender. Delivers straight to recipient's Primary Inbox.
+    Returns (success: bool, info: str).
     """
     config = get_smtp_config()
 
@@ -212,14 +212,14 @@ def send_email_via_smtp(recipient_email, subject, text_body, html_body=None):
         if html_body:
             msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-        # Connect via SSL if port 465, otherwise standard SMTP with STARTTLS
+        # Connect via SSL if port 465, otherwise standard SMTP with STARTTLS (6s timeout for fast cloud failover)
         if config["port"] == 465:
-            with smtplib.SMTP_SSL(config["server"], config["port"], timeout=15) as server:
+            with smtplib.SMTP_SSL(config["server"], config["port"], timeout=6) as server:
                 server.ehlo()
                 server.login(config["username"], config["password"])
                 server.send_message(msg)
         else:
-            with smtplib.SMTP(config["server"], config["port"], timeout=15) as server:
+            with smtplib.SMTP(config["server"], config["port"], timeout=6) as server:
                 server.ehlo()
                 if config["use_tls"]:
                     server.starttls()
@@ -227,7 +227,7 @@ def send_email_via_smtp(recipient_email, subject, text_body, html_body=None):
                 server.login(config["username"], config["password"])
                 server.send_message(msg)
 
-        print("Email sent successfully", flush=True)
+        print(f"Email sent successfully via Gmail SMTP to '{recipient_email}'", flush=True)
         return True, "Email sent successfully"
 
     except smtplib.SMTPAuthenticationError as e:
@@ -247,60 +247,27 @@ def send_email_notification(recipient_email, subject, text_body, html_body=None)
     """
     Universal resilient email dispatcher.
     Strategy:
-    1. Check Resend configuration and SMTP configuration.
-    2. If Resend is configured:
-       - If recipient is the authorized Resend account email (e.g. piyushpatel131206@gmail.com)
-         or custom domain is used (not ending with @resend.dev):
-         Try Resend first (fast HTTPS over port 443).
-         If successful -> return True.
-         If failed -> fall back to SMTP if configured.
-       - If recipient is an external/different address on Resend free trial domain (@resend.dev):
-         Resend free tier rejects outside recipients.
-         If SMTP is configured (e.g. Gmail SMTP):
-           Try SMTP first! This delivers directly to the user's real mailbox.
-           If SMTP succeeds -> return True.
-           If SMTP fails (e.g. timeout on Render cloud where outbound SMTP ports are blocked):
-             Fall back to Resend forwarding to authorized account email so no notification is lost!
-         Else:
-           Send via Resend forwarding to authorized account email.
-    3. If only SMTP is configured:
-       Send via SMTP.
-    4. If neither is configured:
-       Return False, "No email delivery provider is configured."
+    1. Priority 1: Gmail SMTP (Sends directly to recipient's Primary Inbox for any email address).
+    2. Priority 2: Resend API over HTTPS (Automatic failover for cloud environments like Render where outbound SMTP ports are blocked).
     """
-    resend_cfg = get_resend_config()
     smtp_cfg = get_smtp_config()
+    resend_cfg = get_resend_config()
 
-    authorized_resend_email = os.getenv("RESEND_TEST_RECIPIENT", "piyushpatel131206@gmail.com").strip().lower()
-    is_resend_trial = "resend.dev" in resend_cfg["from_email"].lower()
-    is_recipient_resend_authorized = recipient_email.strip().lower() == authorized_resend_email
-
-    # Case A: Recipient is Resend owner OR custom domain is verified -> Try Resend first
-    if resend_cfg["is_configured"] and (not is_resend_trial or is_recipient_resend_authorized):
-        success, msg = send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=False)
-        if success:
-            return True, msg
-        # If Resend failed, try SMTP fallback
-        if smtp_cfg["is_configured"]:
-            print(f"Resend failed ({msg}), attempting fallback to SMTP...", flush=True)
-            return send_email_via_smtp(recipient_email, subject, text_body, html_body)
-        return False, msg
-
-    # Case B: External recipient on Resend trial sandbox -> Try SMTP first for direct inbox delivery
+    # Step 1: Try Gmail SMTP first for direct inbox delivery
     if smtp_cfg["is_configured"]:
         success, msg = send_email_via_smtp(recipient_email, subject, text_body, html_body)
         if success:
-            return True, msg
-        print(f"SMTP delivery failed ({msg}), attempting fallback to Resend cloud forward...", flush=True)
-        if resend_cfg["is_configured"]:
-            return send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=True)
+            return True, f"SMTP: {msg}"
+        print(f"SMTP failed ({msg}), attempting fallback to Resend API over HTTPS...", flush=True)
+
+    # Step 2: Fall back to Resend API over HTTPS (port 443)
+    if resend_cfg["is_configured"]:
+        success, msg = send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=True)
+        if success:
+            return True, f"Resend: {msg}"
         return False, msg
 
-    # Case C: Only Resend is configured (with trial sandbox forward)
-    if resend_cfg["is_configured"]:
-        return send_email_via_resend(recipient_email, subject, text_body, html_body, allow_forward=True)
-
-    return False, "No email delivery provider is configured."
+    return False, "No working email provider configured in environment."
 
 def send_login_success_email(user_email, user_name):
     """Sends a 'Login Successful' notification to the registered user."""
@@ -1097,10 +1064,8 @@ def payment_failure():
     customer_email = request.values.get("email", "").strip() or user.get("email") or session.get("last_order_customer_email", "")
     customer_name = request.values.get("name", "").strip() or user.get("name") or session.get("last_order_customer_name", "Valued Customer")
 
-    # Send failed/cancelled email alert (deduplicated per order attempt unless reason or order changed)
-    last_alerted = session.get("last_failed_alert_order")
-    if customer_email and (not last_alerted or last_alerted != order_id):
-        session["last_failed_alert_order"] = order_id or f"failed_{int(datetime.now().timestamp())}"
+    # Send failed/cancelled email alert
+    if customer_email:
         try:
             send_payment_failed_email(
                 user_email=customer_email,
