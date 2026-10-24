@@ -46,8 +46,13 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
 					<li><a href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
 					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
-					<li><a href="{{ url_for('login') }}">Login</a><span> </span></li>
-					<li><a href="{{ url_for('register') }}">Register</a><span> </span></li>
+					{% if current_user %}
+					<li><span class="nav-user-greeting"><i class="glyphicon glyphicon-user"></i> {{ current_user.name.split()[0] }}</span></li>
+					<li><a class="btn-nav-logout" href="{{ url_for('logout') }}"><i class="glyphicon glyphicon-log-out"></i> Logout</a></li>
+					{% else %}
+					<li><a class="btn-nav-login" href="{{ url_for('login') }}">Login</a></li>
+					<li><a class="btn-nav-register" href="{{ url_for('register') }}">Register</a></li>
+					{% endif %}
 				</ul>
 			</div>
 				 <!-- script-for-menu -->

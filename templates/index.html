@@ -46,8 +46,13 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 					<li><a href="{{ url_for('pages') }}">Pages</a><span> </span></li>
 					<li><a href="{{ url_for('gallery') }}">Gallery</a><span> </span></li>
 					<li><a href="{{ url_for('contact') }}">Contact</a><span> </span></li>
-					<li><a href="{{ url_for('login') }}">Login</a><span> </span></li>
-					<li><a href="{{ url_for('register') }}">Register</a><span> </span></li>
+					{% if current_user %}
+					<li><span class="nav-user-greeting"><i class="glyphicon glyphicon-user"></i> {{ current_user.name.split()[0] }}</span></li>
+					<li><a class="btn-nav-logout" href="{{ url_for('logout') }}"><i class="glyphicon glyphicon-log-out"></i> Logout</a></li>
+					{% else %}
+					<li><a class="btn-nav-login" href="{{ url_for('login') }}">Login</a></li>
+					<li><a class="btn-nav-register" href="{{ url_for('register') }}">Register</a></li>
+					{% endif %}
 				</ul>
 			</div>
 				 <!-- script-for-menu -->
@@ -63,13 +68,24 @@ Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, Sony
 	<!----end-header---->
 	{% with messages = get_flashed_messages(with_categories=true) %}
 	  {% if messages %}
-	    <div class="container" style="margin-top: 20px; margin-bottom: 5px;">
+	    <div class="container flash-message-wrapper">
 	      {% for category, message in messages %}
-	        <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
-	          {{ message }}
+	        <div class="majestic-flash-alert majestic-alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+	          <span class="flash-icon">{{ '✔' if category == 'success' else ('ℹ' if category == 'info' else '⚠') }}</span>
+	          <span class="flash-text">{{ message }}</span>
+	          <button type="button" class="flash-close" aria-label="Close" onclick="$(this).closest('.majestic-flash-alert').fadeOut(300);">&times;</button>
 	        </div>
 	      {% endfor %}
 	    </div>
+	    <script>
+	      $(document).ready(function() {
+	        setTimeout(function() {
+	          $(".flash-message-wrapper .majestic-flash-alert").fadeOut(600, function() {
+	            $(this).remove();
+	          });
+	        }, 4500);
+	      });
+	    </script>
 	  {% endif %}
 	{% endwith %}
 	<!--banner-starts-->

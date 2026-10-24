@@ -1,5 +1,11 @@
 [
     {
+        "name": "Piyush Patel",
+        "email": "piyushpatelr1317@gmail.com",
+        "phone": "9876543210",
+        "password": "Test123"
+    },
+    {
         "name": "Piyush Test",
         "email": "piyush@example.com",
         "phone": "9876543210",
