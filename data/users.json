@@ -1,6 +1,12 @@
 [
     {
         "name": "Piyush Patel",
+        "email": "piyushpatel131206@gmail.com",
+        "phone": "9876543210",
+        "password": "Test123"
+    },
+    {
+        "name": "Piyush Patel (Alt)",
         "email": "piyushpatelr1317@gmail.com",
         "phone": "9876543210",
         "password": "Test123"
