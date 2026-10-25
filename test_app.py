@@ -82,5 +82,31 @@ class MajesticAppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_send_failed.assert_called_once()
 
+    @patch('app.send_email_via_smtp')
+    @patch('app.get_smtp_config')
+    def test_smtp_priority_delivers_to_entered_email(self, mock_get_cfg, mock_send_smtp):
+        mock_get_cfg.return_value = {"is_configured": True}
+        mock_send_smtp.return_value = (True, "Email sent successfully")
+        from app import send_email_notification
+        success, msg = send_email_notification('particular_entered_user@gmail.com', 'Test Subject', 'Body text')
+        self.assertTrue(success)
+        mock_send_smtp.assert_called_once()
+        self.assertEqual(mock_send_smtp.call_args[0][0], 'particular_entered_user@gmail.com')
+
+    @patch('app.save_users')
+    @patch('app.send_registration_success_email')
+    def test_register_route_sends_to_entered_email(self, mock_reg_email, mock_save):
+        import uuid
+        unique_email = f"user_{uuid.uuid4().hex[:8]}@example.com"
+        response = self.client.post('/register', data={
+            'name': 'New Customer',
+            'email': unique_email,
+            'phone': '9876543210',
+            'password': 'testpassword123',
+            'confirm_password': 'testpassword123'
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        mock_reg_email.assert_called_once_with(unique_email, 'New Customer')
+
 if __name__ == '__main__':
     unittest.main()
