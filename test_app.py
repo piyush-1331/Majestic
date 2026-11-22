@@ -15,7 +15,7 @@ class MajesticAppTestCase(unittest.TestCase):
         self.client = self.app.test_client()
         self.app.config['TESTING'] = True
 
-    @patch('app.send_email_via_resend')
+    @patch('app.send_email_via_smtp')
     def test_registration_email_trigger(self, mock_send):
         mock_send.return_value = (True, "Email sent successfully")
         success, msg = send_registration_success_email('test@example.com', 'Test User')
@@ -24,7 +24,7 @@ class MajesticAppTestCase(unittest.TestCase):
         self.assertEqual(mock_send.call_args[0][0], 'test@example.com')
         self.assertIn("Welcome", mock_send.call_args[0][1])
 
-    @patch('app.send_email_via_resend')
+    @patch('app.send_email_via_smtp')
     def test_login_success_email_trigger(self, mock_send):
         mock_send.return_value = (True, "Email sent successfully")
         success, msg = send_login_success_email('test@example.com', 'Test User')
@@ -33,7 +33,7 @@ class MajesticAppTestCase(unittest.TestCase):
         self.assertEqual(mock_send.call_args[0][0], 'test@example.com')
         self.assertIn("Login Successful", mock_send.call_args[0][1])
 
-    @patch('app.send_email_via_resend')
+    @patch('app.send_email_via_smtp')
     def test_login_failed_invalid_password_email_trigger(self, mock_send):
         mock_send.return_value = (True, "Email sent successfully")
         success, msg = send_login_failed_email('test@example.com', 'Test User', 'Invalid Password')
@@ -42,7 +42,7 @@ class MajesticAppTestCase(unittest.TestCase):
         self.assertEqual(mock_send.call_args[0][0], 'test@example.com')
         self.assertIn("Invalid Password", mock_send.call_args[0][1])
 
-    @patch('app.send_email_via_resend')
+    @patch('app.send_email_via_smtp')
     def test_payment_success_email_trigger(self, mock_send):
         mock_send.return_value = (True, "Email sent successfully")
         success, msg = send_payment_success_email(
@@ -53,7 +53,7 @@ class MajesticAppTestCase(unittest.TestCase):
         self.assertEqual(mock_send.call_args[0][0], 'test@example.com')
         self.assertIn("Payment Successful", mock_send.call_args[0][1])
 
-    @patch('app.send_email_via_resend')
+    @patch('app.send_email_via_smtp')
     def test_payment_failed_email_trigger(self, mock_send):
         mock_send.return_value = (True, "Email sent successfully")
         success, msg = send_payment_failed_email(
